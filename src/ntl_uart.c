@@ -74,7 +74,7 @@ int sendCommand(char *command, int64_t addr, int64_t *data)
     return 0;
 }
 
-int NTLconnect(void)
+int ntlConnect(void)
 {
 
     ntlWriteSuccess = 0;

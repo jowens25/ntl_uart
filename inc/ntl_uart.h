@@ -11,10 +11,17 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <config.h>
+
 #include <headers.h>
 
+
 #include "cores.h"
+#include "clkClock.h"
+#include "confSlave.h"
+#include "ntl_uart.h"
+#include "ppsSlave.h"
+#include "ptpOc.h"
+#include "todSlave.h"
 #include "ntpServer.h"
 
 extern volatile int ntlRspReceived;
@@ -35,6 +42,6 @@ int writeRegister(int64_t addr, int64_t *data);
 int parseResponse(char *response, int64_t *data);
 unsigned char calculateChecksum(char *data);
 
-int NTLconnect(void);
+int ntlConnect(void);
 
 #endif /* MAIN_INC_NTL_UART_H_ */

@@ -7,6 +7,7 @@
 #include "ppsSlave.h"
 #include "ptpOc.h"
 #include "todSlave.h"
+#include "ntpServer.h"
 
 Core cores[NUM_CORES];
 int core_count = 0;

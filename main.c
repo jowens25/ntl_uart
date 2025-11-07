@@ -2,10 +2,13 @@
 #include "ntl_uart.h"
 #include "ntpServer.h"
 #include "cores.h"
+
+#ifndef NTL_TIME_SERVER
+
 int main() // driver
 {
 
-    axiConnect();
+    ntlConnect();
     // 672213396
     getCores();
 
@@ -35,3 +38,5 @@ int main() // driver
 
     return 0;
 }
+
+#endif
