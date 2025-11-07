@@ -10,11 +10,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+
 #include <config.h>
 #include <headers.h>
 
-#include "../../ntl_uart/inc/cores.h"
-#include "../../ntl_uart/inc/ntpServer.h"
+#include "cores.h"
+#include "ntpServer.h"
 
 extern volatile int ntlRspReceived;
 extern volatile int ntlCmdReceived;
@@ -34,9 +35,6 @@ int writeRegister(int64_t addr, int64_t *data);
 int parseResponse(char *response, int64_t *data);
 unsigned char calculateChecksum(char *data);
 
-
-
 int NTLconnect(void);
-
 
 #endif /* MAIN_INC_NTL_UART_H_ */
