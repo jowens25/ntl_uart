@@ -180,7 +180,7 @@ int readPtpOcLayer(char *layer, size_t size)
         snprintf(layer, size, "%s", "NA");
         return -1234;
     }
-    //printf("The value for this switch is: %lld\r\n", (temp_data >> 16) & 0x00000003);
+    // printf("The value for this switch is: %lld\r\n", (temp_data >> 16) & 0x00000003);
     switch ((temp_data >> 16) & 0x00000003)
     {
     case 0:

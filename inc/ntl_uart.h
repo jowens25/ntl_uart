@@ -11,10 +11,6 @@
 #include <string.h>
 #include <stdio.h>
 
-
-#include <headers.h>
-
-
 #include "cores.h"
 #include "clkClock.h"
 #include "confSlave.h"
@@ -44,4 +40,57 @@ unsigned char calculateChecksum(char *data);
 
 int ntlConnect(void);
 
+#ifndef __linux__
+#include <headers.h>
+#endif
+
+#ifdef __linux__
+#include <fcntl.h>   // linux
+#include <unistd.h>  // linux
+#include <termios.h> // linux
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <ctype.h>
+#include <stddef.h>
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+extern struct termios tty;
+
+int axiConnect(void);
+
+int serOpen(char fileDescriptor[]);
+int serClose(int fileDescriptor);
+
+int serRead(int ser, char data[], size_t dataLength);
+int serWrite(int ser, char data[], size_t dataLength);
+
+unsigned char calculateChecksum(char *data);
+
+int isWriteResponse(char *message);
+int isReadResponse(char *message);
+int isErrorResponse(char *message);
+int isChecksumCorrect(char *message);
+
+int setupTermios(int);
+
+int readRegister(int64_t addr, int64_t *data);
+int writeRegister(int64_t addr, int64_t *data);
+int RawWrite(char *addr, char *data);
+
+// int AxiRead(char *core, char *property, char *value);
+int axiRead(char *core, char *property, char *value);
+int axiWrite(char *core, char *property, char *value);
+
+extern int64_t temp_data;
+extern int64_t temp_addr;
+
+typedef int (*read_write_func)(char *value, size_t size);
+
+extern char *FPGA_PORT;
+
 #endif /* MAIN_INC_NTL_UART_H_ */
+
+#endif
