@@ -13,9 +13,10 @@
 
 volatile int ntlRspReceived = 0;
 volatile int ntlCmdReceived = 0;
-
+volatile int FORWARD_MESSAGES = 0;
 int ntlWriteSuccess = 0;
-char ntlBuff[100] = {0};
+char ntlCommandBuff[32] = {0};
+char ntlResponseBuff[32] = {0};
 
 int64_t temp_data = 0x00000000;
 int64_t temp_addr = 0x00000000;
@@ -90,7 +91,7 @@ int ntlConnect(void)
 
             if (ntlRspReceived)
             {
-                parseResponse(ntlBuff, 0);
+                parseResponse(ntlResponseBuff, 0);
                 ntlWriteSuccess = 1;
                 timeOutAttempts = 0;
                 ntlRspReceived = 0;
@@ -130,7 +131,12 @@ int parseResponse(char *response, int64_t *data)
         return 0;
     }
 
-	//UART_Send(STDIO_UART, response, 64);
+    if (strncmp(response, "$ER", 3) == 0)
+    {
+    	UART_Send(STDIO_UART, "FPGA ERROR\r\n", 20);
+
+        return 0;
+    }
 
 
     for (int i = 0; i < 8; i++)
@@ -142,46 +148,27 @@ int parseResponse(char *response, int64_t *data)
 
     // printf("hex data: %s\n", hexData);
     *data = strtoull(hexData, NULL, 16);
-    // printf("Read Response: %s \n", readData);
-
-
-
 
     return 0;
 }
 
-int ntlFordwardMessages(void) {
 
-	if(strncmp(&ntlBuff[0], "$CC", 3) == 0) {
-		UART_Send(NTL_UART, ntlBuff, 50);
-	}
-	else if (strncmp(&ntlBuff[0], "$RC", 3) == 0) {
-		UART_Send(NTL_UART, ntlBuff, 50);
-	}
-	else if (strncmp(&ntlBuff[0], "$WC", 3) == 0) {
-		UART_Send(NTL_UART, ntlBuff, 50);
-	}
-
-	else if (strncmp(&ntlBuff[0], "$CR", 3) == 0) {
-		UART_Send(STDIO_UART, ntlBuff, 50);
-	}
-	else if (strncmp(&ntlBuff[0], "$RR", 3) == 0) {
-		UART_Send(STDIO_UART, ntlBuff, 50);
-	}
-	else if (strncmp(&ntlBuff[0], "$WR", 3) == 0) {
-		UART_Send(STDIO_UART, ntlBuff, 50);
-	}
-	else if (strncmp(&ntlBuff[0], "$ER", 3) == 0) {
-		UART_Send(STDIO_UART, ntlBuff, 50);
-	}
-
-	else {
-		UART_Send(STDIO_UART, "NTL UART ERR\r\n", 50);
-
-
+int ntlForwardResponse(void) {
+	if (ntlRspReceived) {
+		ntlRspReceived = 0;
+		UART_Send(STDIO_UART, ntlResponseBuff, strlen(ntlResponseBuff));
 	}
 	return 0;
 }
+
+int ntlForwardCommand(void) {
+	if (ntlCmdReceived) {
+		ntlCmdReceived = 0;
+		UART_Send(NTL_UART, ntlCommandBuff, strlen(ntlCommandBuff));
+	}
+	return 0;
+}
+
 
 unsigned char calculateChecksum(char *data)
 {
@@ -205,64 +192,51 @@ unsigned char calculateChecksum(char *data)
 
 int readRegister(int64_t addr, int64_t *data)
 {
-
     ntlWriteSuccess = 0;
     uint8_t i, timeOutAttempts = 3;
-
     while (ntlWriteSuccess == 0 && timeOutAttempts--)
     {
         sendCommand("$RC", addr, data);
-
         /* wait for 0.05 seconds */
         for (i = 0; i < NTL_RESPONSE_TIMEOUT; i++)
         {
-
             if (ntlRspReceived)
             {
-
-                parseResponse(ntlBuff, data);
+                parseResponse(ntlResponseBuff, data);
                 ntlWriteSuccess = 1;
                 timeOutAttempts = 0;
                 ntlRspReceived = 0;
             }
-
             waitTicks(1);
         }
     }
-
     return 0;
 }
 
 
 int writeRegister(int64_t addr, int64_t *data)
 {
-
-	ntlWriteSuccess = 0;
+		ntlWriteSuccess = 0;
 	    uint8_t i, timeOutAttempts = 3;
-
 	    while (ntlWriteSuccess == 0 && timeOutAttempts--)
 	    {
 	        sendCommand("$WC", addr, data);
-
 	        /* wait for 0.05 seconds */
 	        for (i = 0; i < NTL_RESPONSE_TIMEOUT; i++)
 	        {
-
 	            if (ntlRspReceived)
 	            {
-
-	                parseResponse(ntlBuff, data);
+	                parseResponse(ntlResponseBuff, data);
 	                ntlWriteSuccess = 1;
 	                timeOutAttempts = 0;
 	                ntlRspReceived = 0;
 	            }
-
 	            waitTicks(1);
 	        }
 	    }
-
     return 0;
 }
+
 
 #endif
 

@@ -27,8 +27,12 @@
 extern volatile int ntlRspReceived;
 extern volatile int ntlCmdReceived;
 
-extern char ntlBuff[100];
-int ntlFordwardMessages(void);
+extern char ntlCommandBuff[32];
+extern char ntlResponseBuff[32];
+
+int ntlForwardCommand(void);
+int ntlForwardResponse(void);
+
 extern int ntlWriteSuccess;
 
 extern int64_t temp_data;
