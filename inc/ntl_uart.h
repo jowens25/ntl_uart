@@ -26,13 +26,19 @@ extern volatile int ntlCmdReceived;
 extern char ntlCommandBuff[32];
 extern char ntlResponseBuff[32];
 
+extern char ntlCmd[64];
+extern char ntlRsp[64];
+extern char *ntlValue;
+
 int ntlForwardCommand(void);
 int ntlForwardResponse(void);
+void NTL_COM_HANDLER(void);
 
 extern int ntlWriteSuccess;
 
 extern int64_t temp_data;
 extern int64_t temp_addr;
+extern int updated;
 
 #define NTL_RESPONSE_TIMEOUT 5
 
@@ -41,6 +47,7 @@ int readRegister(int64_t addr, int64_t *data);
 int writeRegister(int64_t addr, int64_t *data);
 int parseResponse(char *response, int64_t *data);
 unsigned char calculateChecksum(char *data);
+int readOnly(char *ro, size_t size);
 
 int ntlConnect(void);
 

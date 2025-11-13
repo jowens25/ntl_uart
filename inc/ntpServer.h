@@ -26,6 +26,33 @@
 #define Ucm_NtpServer_UtcInfoControlReg 0x00000100
 #define Ucm_NtpServer_UtcInfoReg 0x00000104
 
+#define NTP_SERVER_Version 0
+#define NTP_SERVER_Status 1
+#define NTP_SERVER_IpMode 2
+#define NTP_SERVER_IpAddress 3
+#define NTP_SERVER_MacAddress 4
+#define NTP_SERVER_VlanStatus 5
+#define NTP_SERVER_VlanAddress 6
+#define NTP_SERVER_UnicastMode 7
+#define NTP_SERVER_MulticastMode 8
+#define NTP_SERVER_BroadcastMode 9
+#define NTP_SERVER_PrecisionValue 10
+#define NTP_SERVER_PollIntervalValue 11
+#define NTP_SERVER_StratumValue 12
+#define NTP_SERVER_ReferenceId 13
+#define NTP_SERVER_SmearingStatus 14
+#define NTP_SERVER_Leap61InProgress 15
+#define NTP_SERVER_Leap59InProgress 16
+#define NTP_SERVER_Leap61Status 17
+#define NTP_SERVER_Leap59Status 18
+#define NTP_SERVER_UtcOffsetStatus 19
+#define NTP_SERVER_UtcOffsetValue 20
+#define NTP_SERVER_RequestsValue 21
+#define NTP_SERVER_ResponsesValue 22
+#define NTP_SERVER_RequestsDroppedValue 23
+#define NTP_SERVER_BroadcastsValue 24
+#define NTP_SERVER_ClearCountersStatus 25
+
 int readNtpServerAll(void);
 
 int readNtpServerStatus(char *status, size_t size);              // Ntp Server Status
@@ -85,16 +112,18 @@ int ipAddressToByteArray(char *ipAddress, long *addressByteArray, size_t size);
 int to4(char *ipv6, size_t size);
 int to16(char *ipv4, size_t size);
 
+int readWriteNtpProperty( int prop, char *value);
 
 typedef struct
 {
 
-    int64_t core_type;
-    int64_t core_instance_nr;
-    int64_t address_range_low;
-    int64_t address_range_high;
-    int64_t interrupt_mask;
+    int32_t core_type;
+    int32_t core_instance_nr;
+    int32_t address_range_low;
+    int32_t address_range_high;
+    int32_t interrupt_mask;
 
+    char Version[32];
     char Status[32];
     char IpMode[32];
     char IpAddress[32];
@@ -120,11 +149,9 @@ typedef struct
     char RequestsDroppedValue[32];
     char BroadcastsValue[32];
     char ClearCountersStatus[32];
-    char Version[32];
 
 } NTP_SERVER_T;
 
 extern NTP_SERVER_T NTP_SERVER;
-
 
 #endif

@@ -10,7 +10,7 @@ int readNtpServerAll(void)
 {
 
     size_t size = 64;
-
+    readNtpServerVersion(NTP_SERVER.Version, size);
     readNtpServerStatus(NTP_SERVER.Status, size);
     readNtpServerIpMode(NTP_SERVER.IpMode, size);
     readNtpServerIpAddress(NTP_SERVER.IpAddress, size);
@@ -36,7 +36,172 @@ int readNtpServerAll(void)
     readNtpServerRequestsDroppedValue(NTP_SERVER.RequestsDroppedValue, size);
     readNtpServerBroadcastsValue(NTP_SERVER.BroadcastsValue, size);
     readNtpServerClearCountersStatus(NTP_SERVER.ClearCountersStatus, size);
-    readNtpServerVersion(NTP_SERVER.Version, size);
+    return 0;
+}
+
+int readWriteNtpProperty(int prop, char *newValue)
+{
+    size_t size = 32;
+    int32_t core = NTP_SERVER.core_type;
+
+    int (*read_func)(char *, size_t) = NULL;
+    int (*write_func)(char *, size_t) = NULL;
+    char *struct_value = NULL;
+
+    switch (prop)
+    {
+
+    case NTP_SERVER_Version:
+        read_func = readNtpServerVersion;
+        write_func = readOnly;
+        struct_value = NTP_SERVER.Version;
+        break;
+
+    case NTP_SERVER_Status:
+        read_func = readNtpServerStatus;
+        write_func = writeNtpServerStatus;
+        struct_value = NTP_SERVER.Status;
+        break;
+
+    case NTP_SERVER_IpMode:
+        read_func = readNtpServerIpMode;
+        write_func = writeNtpServerIpMode;
+        struct_value = NTP_SERVER.IpMode;
+        break;
+    case NTP_SERVER_IpAddress:
+        read_func = readNtpServerIpAddress;
+        write_func = writeNtpServerIpAddress;
+        struct_value = NTP_SERVER.IpAddress;
+        break;
+    case NTP_SERVER_MacAddress:
+        read_func = readNtpServerMacAddress;
+        write_func = writeNtpServerMacAddress;
+        struct_value = NTP_SERVER.MacAddress;
+        break;
+    case NTP_SERVER_VlanStatus:
+        read_func = readNtpServerVlanStatus;
+        write_func = writeNtpServerVlanStatus;
+        struct_value = NTP_SERVER.VlanStatus;
+        break;
+    case NTP_SERVER_VlanAddress:
+        read_func = readNtpServerVlanAddress;
+        write_func = writeNtpServerVlanAddress;
+        struct_value = NTP_SERVER.VlanAddress;
+        break;
+    case NTP_SERVER_UnicastMode:
+        read_func = readNtpServerUnicastMode;
+        write_func = writeNtpServerUnicastMode;
+        struct_value = NTP_SERVER.UnicastMode;
+        break;
+    case NTP_SERVER_MulticastMode:
+        read_func = readNtpServerMulticastMode;
+        write_func = writeNtpServerMulticastMode;
+        struct_value = NTP_SERVER.MulticastMode;
+        break;
+    case NTP_SERVER_BroadcastMode:
+        read_func = readNtpServerBroadcastMode;
+        write_func = writeNtpServerBroadcastMode;
+        struct_value = NTP_SERVER.BroadcastMode;
+        break;
+    case NTP_SERVER_PrecisionValue:
+        read_func = readNtpServerPrecisionValue;
+        write_func = writeNtpServerPrecisionValue;
+        struct_value = NTP_SERVER.PrecisionValue;
+        break;
+    case NTP_SERVER_PollIntervalValue:
+        read_func = readNtpServerPollIntervalValue;
+        write_func = writeNtpServerPollIntervalValue;
+        struct_value = NTP_SERVER.PollIntervalValue;
+        break;
+    case NTP_SERVER_StratumValue:
+        read_func = readNtpServerStratumValue;
+        write_func = writeNtpServerStratumValue;
+        struct_value = NTP_SERVER.StratumValue;
+        break;
+    case NTP_SERVER_ReferenceId:
+        read_func = readNtpServerReferenceId;
+        write_func = readOnly;
+        struct_value = NTP_SERVER.ReferenceId;
+        break;
+    case NTP_SERVER_SmearingStatus:
+        read_func = readNtpServerSmearingStatus;
+        write_func = readOnly;
+        struct_value = NTP_SERVER.SmearingStatus;
+        break;
+    case NTP_SERVER_Leap61InProgress:
+        read_func = readNtpServerLeap61InProgress;
+        write_func = readOnly;
+        struct_value = NTP_SERVER.Leap61InProgress;
+        break;
+    case NTP_SERVER_Leap59InProgress:
+        read_func = readNtpServerLeap59InProgress;
+        write_func = readOnly;
+        struct_value = NTP_SERVER.Leap59InProgress;
+        break;
+    case NTP_SERVER_Leap61Status:
+        read_func = readNtpServerLeap61Status;
+        write_func = writeNtpServerLeap61Status;
+        struct_value = NTP_SERVER.Leap61Status;
+        break;
+    case NTP_SERVER_Leap59Status:
+        read_func = readNtpServerLeap59Status;
+        write_func = writeNtpServerLeap59Status;
+        struct_value = NTP_SERVER.Leap59Status;
+        break;
+    case NTP_SERVER_UtcOffsetStatus:
+        read_func = readNtpServerUtcOffsetStatus;
+        write_func = writeNtpServerUtcOffsetStatus;
+        struct_value = NTP_SERVER.UtcOffsetStatus;
+        break;
+    case NTP_SERVER_UtcOffsetValue:
+        read_func = readNtpServerUtcOffsetValue;
+        write_func = writeNtpServerUtcOffsetValue;
+        struct_value = NTP_SERVER.UtcOffsetValue;
+        break;
+    case NTP_SERVER_RequestsValue:
+        read_func = readNtpServerRequestsValue;
+        write_func = readOnly;
+        struct_value = NTP_SERVER.RequestsValue;
+        break;
+    case NTP_SERVER_ResponsesValue:
+        read_func = readNtpServerResponsesValue;
+        write_func = readOnly;
+        struct_value = NTP_SERVER.ResponsesValue;
+        break;
+    case NTP_SERVER_RequestsDroppedValue:
+        read_func = readNtpServerRequestsDroppedValue;
+        write_func = readOnly;
+        struct_value = NTP_SERVER.RequestsDroppedValue;
+        break;
+    case NTP_SERVER_BroadcastsValue:
+        read_func = readNtpServerBroadcastsValue;
+        write_func = readOnly;
+        struct_value = NTP_SERVER.BroadcastsValue;
+        break;
+    case NTP_SERVER_ClearCountersStatus:
+        read_func = readNtpServerClearCountersStatus;
+        write_func = writeNtpServerClearCountersStatus;
+        struct_value = NTP_SERVER.ClearCountersStatus;
+        break;
+    }
+
+
+    // read fpga, return struct
+    if (strncmp(newValue, "?", 1) == 0)
+    {
+        read_func(struct_value, size);
+    }
+
+    // write new value to fpga, read fpga, populate struct
+    else if (strlen(newValue) != 0)
+    {
+        write_func(newValue, size);
+        read_func(struct_value, size);
+    }
+
+    snprintf(ntlRsp, size, "$NTL,%d,%d,%s\r\n", core, prop, struct_value);
+    UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
+
     return 0;
 }
 
@@ -355,7 +520,7 @@ int readNtpServerIpAddress(char *ipAddr, size_t size)
         return -1;
     }
 
-    if (0 == strncmp(ipMode, "IPv4", size))
+    if (0 == strncmp(ipMode, "IPv4", 4))
     {
         if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
         {
@@ -379,7 +544,7 @@ int readNtpServerIpAddress(char *ipAddr, size_t size)
 
         snprintf(ipAddr, size, "%d.%d.%d.%d", ip_bytes[3], ip_bytes[2], ip_bytes[1], ip_bytes[0]);
     }
-    else if (0 == strncmp(ipMode, "IPv6", size))
+    else if (0 == strncmp(ipMode, "IPv6", 4))
     {
         unsigned char temp_ip6[16];
         // temp_string.clear();
@@ -861,7 +1026,7 @@ int readNtpServerVersion(char *version, size_t size)
         return -1;
     }
     // ui->NtpServerVersionValue->setText(QString("0x%1").arg(temp_data, 8, 16, QLatin1Char('0')));
-    snprintf(version, size, "0x%lx", temp_data);
+    snprintf(version, size, "0x%llx", temp_data);
 
     return 0;
 }
@@ -892,7 +1057,7 @@ int writeNtpServerStatus(char *status, size_t size)
     temp_addr = NTP_SERVER.address_range_low;
     temp_data = 0x00000000;
 
-    if (0 == strncmp(status, "enabled", size))
+    if (0 == strncmp(status, "enabled", 7))
     {
         temp_data |= 0x00000001;
     }
@@ -975,11 +1140,11 @@ int writeNtpServerVlanStatus(char *status, size_t size)
 
     temp_data &= 0x0000FFFF;
 
-    if (0 == strncmp(status, "enabled", size))
+    if (0 == strncmp(status, "enabled", 7))
     {
         temp_data = 0x00010000 | temp_data;
     }
-    else if (0 == strncmp(status, "disabled", size))
+    else if (0 == strncmp(status, "disabled", 8))
     {
         temp_data = 0x00000000 | temp_data; // disable
     }
@@ -1057,20 +1222,20 @@ int writeNtpServerIpMode(char *mode, const size_t size)
         return -2;
     }
 
-    if (0 == strncmp(mode, "IPv4", size))
+    if (0 == strncmp(mode, "IPv4", 4))
     {
         temp_data &= ~0x01000002;
         temp_data |= 0x00000001;
     }
-    else if (0 == strncmp(mode, "IPv6", size))
+    else if (0 == strncmp(mode, "IPv6", 4))
     {
         char ipv6Address[size];
-        printf("current address: %s\n", currentAddress);
+        ///"current address: %s\n", currentAddress);
 
         temp_data &= ~0x00000001;
         temp_data |= 0x01000002;
 
-        printf("IPv6 address: %s\n", ipv6Address);
+        // printf("IPv6 address: %s\n", ipv6Address);
     }
     else
     {
@@ -1104,19 +1269,19 @@ int writeNtpServerIpAddress(char *ipAddress, size_t size)
 
     if (0 != readNtpServerIpMode(currentMode, size))
     {
-        printf("failed to read current mode\n");
+        // printf("failed to read current mode\n");
         return -1;
     }
 
-    if (0 == strncmp(currentMode, "IPv4", size))
+    if (0 == strncmp(currentMode, "IPv4", 4))
     {
         if (0 != ipv4_addr_to_register_value(ipAddress, size))
         {
-            printf("failed to write ipv4 crap\n");
+            //printf("failed to write ipv4 crap\n");
             return -4;
         }
     }
-    else if (0 == strncmp(currentMode, "IPv6", size))
+    else if (0 == strncmp(currentMode, "IPv6", 4))
     {
         ipv6_addr_to_register_value(ipAddress, size);
     }
@@ -1133,7 +1298,7 @@ int ipv4_addr_to_register_value(char *ipAddress, size_t size)
 
     if (strchr(ipAddress, '.'))
     { // ipv4
-        printf("ipv4 case \n");
+        //printf("ipv4 case \n");
 
         char *token;
         for (int i = 0; i < 4; i++)
@@ -1162,15 +1327,15 @@ int ipv4_addr_to_register_value(char *ipAddress, size_t size)
             if (i == 0)
             {
                 token = strtok(ipAddress, ":"); // grabs first token
-                printf("first token: %s\n", token);
+                //printf("first token: %s\n", token);
                 if (0 == strncmp(token, "ffff", 5))
                 {
                     token = strtok(NULL, ":");
-                    printf("ffff so it is a mapped ipv4\n");
+                   // printf("ffff so it is a mapped ipv4\n");
                 }
                 else
                 {
-                    printf("not ffff, not mapped so exit\n");
+                    //printf("not ffff, not mapped so exit\n");
                     temp_ip[0] = 0;
                     temp_ip[1] = 0;
                     temp_ip[2] = 0;
@@ -1186,26 +1351,26 @@ int ipv4_addr_to_register_value(char *ipAddress, size_t size)
             if (token == NULL)
                 break;
 
-            printf("token: %s \n", token);
+            //printf("token: %s \n", token);
             // Extract first two characters
             strncpy(byte, token, 2);
 
             snprintf(byte, 3, "%2s", token);
 
-            printf("byte: %s \n", byte);
+            //printf("byte: %s \n", byte);
 
             temp_ip[i] = strtol(byte, NULL, 16);
 
             // Extract next two characters
             snprintf(byte, 3, "%2s", token + 2);
-            printf("byte: %s \n", byte);
+            //printf("byte: %s \n", byte);
 
             temp_ip[i + 1] = strtol(byte, NULL, 16);
         }
     }
     else
     {
-        printf("big fat else\n");
+       // printf("big fat else\n");
         return -1;
     }
     temp_data = 0x00000000;
@@ -1219,13 +1384,13 @@ int ipv4_addr_to_register_value(char *ipAddress, size_t size)
 
     if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
     {
-        printf("failed to write config \n");
+        //printf("failed to write config \n");
         return -1;
     }
     temp_data = 0x00000008; // write
     if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
     {
-        printf("failed to write control \n");
+        //printf("failed to write control \n");
         return -1;
     }
     return 0;
@@ -1363,7 +1528,7 @@ int writeNtpServerUnicastMode(char *mode, size_t size)
 
     temp_data &= ~0x00000010;
 
-    if (0 == strncmp(mode, "enabled", size))
+    if (0 == strncmp(mode, "enabled", 7))
     {
         temp_data |= 0x000000010;
     }
@@ -1394,7 +1559,7 @@ int writeNtpServerMulticastMode(char *mode, size_t size)
     }
     temp_data &= ~0x00000020;
 
-    if (0 == strncmp(mode, "enabled", size))
+    if (0 == strncmp(mode, "enabled", 7))
     {
         temp_data |= 0x000000020;
     }
@@ -1424,7 +1589,7 @@ int writeNtpServerBroadcastMode(char *mode, size_t size)
 
     temp_data &= ~0x00000040; // clear it
 
-    if (0 == strncmp(mode, "enabled", size))
+    if (0 == strncmp(mode, "enabled", 7))
     {
         temp_data |= 0x000000040;
     }
@@ -1631,11 +1796,11 @@ int writeNtpServerUtcSmearingStatus(char *status, size_t size)
     }
 
     temp_data &= ~0x00000100; // Clear bit (using NOT + AND)
-    if (0 == strcmp(status, "enabled"))
+    if (0 == strncmp(status, "enabled", 7))
     {
         temp_data |= 0x00000100;
     }
-    else if (0 == strcmp(status, "disabled"))
+    else if (0 == strncmp(status, "disabled", 8))
     {
         temp_data |= 0x00000000;
     }
@@ -1667,11 +1832,11 @@ int writeNtpServerLeap61Status(char *status, size_t size)
     }
 
     temp_data &= ~0x00000800; // Clear bit (using NOT + AND)
-    if (0 == strcmp(status, "enabled"))
+    if (0 == strncmp(status, "enabled", 7))
     {
         temp_data |= 0x00000800;
     }
-    else if (0 == strcmp(status, "disabled"))
+    else if (0 == strncmp(status, "disabled", 8))
     {
         temp_data |= 0x00000000;
     }
@@ -1703,11 +1868,11 @@ int writeNtpServerLeap59Status(char *status, size_t size)
     }
 
     temp_data &= ~0x00001000; // Clear bit (using NOT + AND)
-    if (0 == strcmp(status, "enabled"))
+    if (0 == strncmp(status, "enabled", 7))
     {
         temp_data |= 0x00001000;
     }
-    else if (0 == strcmp(status, "disabled"))
+    else if (0 == strncmp(status, "disabled", 8))
     {
         temp_data |= 0x00000000;
     }
@@ -1739,11 +1904,11 @@ int writeNtpServerUtcOffsetStatus(char *status, size_t size)
     }
 
     temp_data &= ~0x00002000; // Clear bit (using NOT + AND)
-    if (0 == strcmp(status, "enabled"))
+    if (0 == strncmp(status, "enabled", 7))
     {
         temp_data |= 0x00002000;
     }
-    else if (0 == strcmp(status, "disabled"))
+    else if (0 == strncmp(status, "disabled", 8))
     {
         temp_data |= 0x00000000;
     }
@@ -1816,12 +1981,12 @@ int writeStatus(char *status, size_t size)
 {
     temp_addr = NTP_SERVER.address_range_low;
 
-    if (0 == strncmp(status, "enable", size))
+    if (0 == strncmp(status, "enable", 7))
     {
         temp_data = 0x00000001;
     }
 
-    else if (0 == strncmp(status, "disable", size))
+    else if (0 == strncmp(status, "disable", 8))
     {
         temp_data = 0x00000000;
     }
