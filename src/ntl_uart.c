@@ -6,6 +6,12 @@
  */
 
 #include "ntl_uart.h"
+#include "clkClock.h"
+#include "confSlave.h"
+#include "ntpServer.h"
+#include "ppsSlave.h"
+#include "ptpOc.h"
+#include "todSlave.h"
 
 #ifdef NTL_TIME_SERVER
 
@@ -35,7 +41,9 @@ int64_t temp_addr = 0x00000000;
 
 int readOnly(char *ro, size_t size)
 {
-    snprintf(ro, size, "READ-ONLY\r\n");
+    snprintf(ro, size, "READ-ONLY");
+
+    return 0;
 }
 
 int sendCommand(char *command, int64_t addr, int64_t *data)
@@ -58,10 +66,10 @@ int sendCommand(char *command, int64_t addr, int64_t *data)
     else if (strcmp(command, "$WC") == 0)
     {
         strcat(writeData, ",");
-        sprintf(hexAddr, "0x%08lx", addr);
+        sprintf(hexAddr, "0x%08llx", addr);
         strcat(writeData, hexAddr);
         strcat(writeData, ",");
-        sprintf(hexData, "0x%08lx", *data);
+        sprintf(hexData, "0x%08llx", *data);
         strcat(writeData, hexData);
     }
 
@@ -165,7 +173,7 @@ int ntlForwardCommand(void)
     {
         ntlCmdReceived = 0;
 
-        if (memcmp((void *)&ntlCommandBuff[0], "$NTL", 4) == 0)
+        if (memcmp((void *)&ntlCommandBuff[0], "$GPNTL", 4) == 0)
         {
             NTL_COM_HANDLER();
         }
@@ -238,8 +246,8 @@ unsigned char calculateChecksum(char *data)
 }
 //               0 or 1   0...22  0...50
 //         0123456789
-//         $NTL,0,22,5,10.1.10.205
-// expects $NTL,OPERATION,MODULE,PROPERTY,VALUE
+//         $GPNTL,0,22,5,10.1.10.205
+// expects $GPNTL,OPERATION,MODULE,PROPERTY,VALUE
 void NTL_COM_HANDLER(void)
 {
 
@@ -250,7 +258,7 @@ void NTL_COM_HANDLER(void)
 
     ntlCmd[sizeof(ntlCmd) - 1] = '\0';
 
-    tok = strtok(ntlCmd, ","); // returns $NTL
+    tok = strtok(ntlCmd, ","); // returns $GPNTL
 
     tok = strtok(NULL, ","); // returns modules
     ntlModule = strtol(tok, NULL, 10);
@@ -261,37 +269,106 @@ void NTL_COM_HANDLER(void)
     ntlValue = NULL;
     ntlValue = strtok(NULL, ","); // value
 
-    //ntlValue[strcspn(str, "\r\n")] = '\0';
+    // ntlValue[strcspn(str, "\r\n")] = '\0';
 
     switch (ntlModule)
     {
     case Ucm_CoreConfig_TodSlaveCoreType:
 
+        readWriteProperty(Ucm_CoreConfig_TodSlaveCoreType, todProperties, ntlProperty, ntlValue);
+
         break;
 
     case Ucm_CoreConfig_PtpOrdinaryClockCoreType:
+
+        readWriteProperty(Ucm_CoreConfig_PtpOrdinaryClockCoreType, ptpProperties, ntlProperty, ntlValue);
 
         break;
 
     case Ucm_CoreConfig_PpsSlaveCoreType:
 
+        readWriteProperty(Ucm_CoreConfig_PpsSlaveCoreType, ppsProperties, ntlProperty, ntlValue);
+
+        // readWritePpsProperty(ntlProperty, ntlValue);
+
         break;
 
     case Ucm_CoreConfig_NtpServerCoreType:
-        // UART_Send(STDIO_UART, "NTP CASE?\r\n", 20);
 
-        readWriteNtpProperty( ntlProperty, ntlValue);
+        // readWriteNtpProperty(ntlProperty, ntlValue);
+
+        readWriteProperty(Ucm_CoreConfig_NtpServerCoreType, ntpProperties, ntlProperty, ntlValue);
 
         break;
 
-    case Ucm_CoreConfig_ConfSlaveCoreType:
+    case Ucm_CoreConfig_ConfSlaveCoreType: // remove?
+
+        // readWriteProperty(Ucm_CoreConfig_ConfSlaveCoreType, confSlaveProperties, ntlProperty, ntlValue);
 
         break;
 
     case Ucm_CoreConfig_ClkClockCoreType:
 
+        readWriteProperty(Ucm_CoreConfig_ClkClockCoreType, clkProperties, ntlProperty, ntlValue);
+
+        break;
+
+    case 0:
+        int err = ntlConnect();
+        if (err != 0)
+        {
+            snprintf(ntlRsp, 31, "$GPNTL,ERR,CONNECTION FAILED\r\n");
+            UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
+        }
+        err = getCores();
+        if (err != 0)
+        {
+            snprintf(ntlRsp, 30, "$GPNTL,ERR,GET_CORES FAILED\r\n");
+            UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
+        }
+
+        snprintf(ntlRsp, 15, "$GPNTL,CC,GC\r\n");
+        UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
         break;
     }
+}
+
+int readWriteProperty(int core_type, NTL_PROPERTY_T *properties, int p, char *newValue)
+{
+    size_t size = 64;
+
+    if (properties[p].read == NULL || properties[p].write == NULL || properties[p].value == NULL)
+    {
+        snprintf(ntlRsp, size, "$GPNTL,%d,%d,ERR\r\n", core_type, p);
+        UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
+        return -1;
+    }
+
+    // read fpga, return struct
+    if (strncmp(newValue, "?", 1) == 0)
+    {
+        properties[p].read(properties[p].value, size);
+    }
+
+    // write new value to fpga, read fpga, populate struct
+    else if (strlen(newValue) != 0)
+    {
+
+        properties[p].write(newValue, size);
+
+        if(strcmp(newValue, "READ-ONLY") != 0) {
+            properties[p].read(properties[p].value, size);
+        } else {
+            snprintf(ntlRsp, size, "$GPNTL,%d,%d,%s\r\n", core_type, p, newValue);
+            UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
+            return 0;
+        }
+    }
+
+    snprintf(ntlRsp, size, "$GPNTL,%d,%d,%s\r\n", core_type, p, properties[p].value);
+    UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
+
+    return 0;
 }
 
 #endif

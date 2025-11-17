@@ -4,48 +4,44 @@
 #include "cores.h"
 #include "ntl_uart.h"
 
-TOD_SLAVE_T TOD;
+TOD_SLAVE_T TOD_SLAVE;
 
-int readTodSlaveAll(void)
-{
+NTL_PROPERTY_T todProperties[TOD_SLAVE_NUM_PROPS] = {
 
-    size_t size = 64;
-
-    readTodSlaveVersion(TOD.Version, size);
-    readTodSlaveProtocol(TOD.Protocol, size);
-    readTodSlaveGnss(TOD.Gnss, size);
-    readTodSlaveMsgDisable(TOD.MsgDisable, size);
-    readTodSlaveCorrection(TOD.Correction, size);
-    readTodSlaveBaudRate(TOD.BaudRate, size);
-    readTodSlaveInvertedPolarity(TOD.InvertedPolarity, size);
-    readTodSlaveUtcOffset(TOD.UtcOffset, size);
-    readTodSlaveUtcInfoValid(TOD.UtcInfoValid, size);
-    readTodSlaveLeapAnnounce(TOD.LeapAnnounce, size);
-    readTodSlaveLeap59(TOD.Leap59, size);
-    readTodSlaveLeap61(TOD.Leap61, size);
-    readTodSlaveLeapInfoValid(TOD.LeapInfoValid, size);
-    readTodSlaveTimeToLeap(TOD.TimeToLeap, size);
-    readTodSlaveGnssFix(TOD.GnssFix, size);
-    readTodSlaveGnssFixOk(TOD.GnssFixOk, size);
-    readTodSlaveSpoofingState(TOD.SpoofingState, size);
-    readTodSlaveFixAndSpoofingInfoValid(TOD.FixAndSpoofingInfoValid, size);
-    readTodSlaveJammingLevel(TOD.JammingLevel, size);
-    readTodSlaveJammingState(TOD.JammingState, size);
-    readTodSlaveAntennaState(TOD.AntennaState, size);
-    readTodSlaveAntennaAndJammingInfoValid(TOD.AntennaAndJammingInfoValid, size);
-    readTodSlaveNrOfSatellitesSeen(TOD.NrOfSatellitesSeen, size);
-    readTodSlaveNrOfSatellitesLocked(TOD.NrOfSatellitesLocked, size);
-    readTodSlaveNrOfSatellitesInfo(TOD.NrOfSatellitesInfo, size);
-    readTodSlaveEnable(TOD.Enable, size);
-    readTodSlaveInputOk(TOD.InputOk, size);
+    [TOD_SLAVE_Version] = {readTodSlaveVersion, readOnly, TOD_SLAVE.Version},
+    [TOD_SLAVE_Protocol] = {readTodSlaveProtocol, writeTodSlaveProtocol, TOD_SLAVE.Protocol},
+    [TOD_SLAVE_Gnss] = {readTodSlaveGnss, writeTodSlaveGnss, TOD_SLAVE.Gnss},
+    [TOD_SLAVE_MsgDisable] = {readTodSlaveMsgDisable, writeTodSlaveMsgDisable, TOD_SLAVE.MsgDisable},
+    [TOD_SLAVE_Correction] = {readTodSlaveCorrection, writeTodSlaveCorrection, TOD_SLAVE.Correction},
+    [TOD_SLAVE_BaudRate] = {readTodSlaveBaudRate, writeTodSlaveBaudRate, TOD_SLAVE.BaudRate},
+    [TOD_SLAVE_InvertedPolarity] = {readTodSlaveInvertedPolarity, writeTodSlaveInvertedPolarity, TOD_SLAVE.InvertedPolarity},
+    [TOD_SLAVE_UtcOffset] = {readTodSlaveUtcOffset, readOnly, TOD_SLAVE.UtcOffset},
+    [TOD_SLAVE_UtcInfoValid] = {readTodSlaveUtcInfoValid, readOnly, TOD_SLAVE.UtcInfoValid},
+    [TOD_SLAVE_LeapAnnounce] = {readTodSlaveLeapAnnounce, readOnly, TOD_SLAVE.LeapAnnounce},
+    [TOD_SLAVE_Leap59] = {readTodSlaveLeap59, readOnly, TOD_SLAVE.Leap59},
+    [TOD_SLAVE_Leap61] = {readTodSlaveLeap61, readOnly, TOD_SLAVE.Leap61},
+    [TOD_SLAVE_LeapInfoValid] = {readTodSlaveLeapInfoValid, readOnly, TOD_SLAVE.LeapInfoValid},
+    [TOD_SLAVE_TimeToLeap] = {readTodSlaveTimeToLeap, readOnly, TOD_SLAVE.TimeToLeap},
+    [TOD_SLAVE_GnssFix] = {readTodSlaveGnssFix, readOnly, TOD_SLAVE.GnssFix},
+    [TOD_SLAVE_GnssFixOk] = {readTodSlaveGnssFixOk, readOnly, TOD_SLAVE.GnssFixOk},
+    [TOD_SLAVE_SpoofingState] = {readTodSlaveSpoofingState, readOnly, TOD_SLAVE.SpoofingState},
+    [TOD_SLAVE_FixAndSpoofingInfoValid] = {readTodSlaveFixAndSpoofingInfoValid, readOnly, TOD_SLAVE.FixAndSpoofingInfoValid},
+    [TOD_SLAVE_JammingLevel] = {readTodSlaveJammingLevel, readOnly, TOD_SLAVE.JammingLevel},
+    [TOD_SLAVE_JammingState] = {readTodSlaveJammingState, readOnly, TOD_SLAVE.JammingState},
+    [TOD_SLAVE_AntennaState] = {readTodSlaveAntennaState, readOnly, TOD_SLAVE.AntennaState},
+    [TOD_SLAVE_AntennaAndJammingInfoValid] = {readTodSlaveAntennaAndJammingInfoValid, readOnly, TOD_SLAVE.AntennaAndJammingInfoValid},
+    [TOD_SLAVE_NrOfSatellitesSeen] = {readTodSlaveNrOfSatellitesSeen, readOnly, TOD_SLAVE.NrOfSatellitesSeen},
+    [TOD_SLAVE_NrOfSatellitesLocked] = {readTodSlaveNrOfSatellitesLocked, readOnly, TOD_SLAVE.NrOfSatellitesLocked},
+    [TOD_SLAVE_NrOfSatellitesInfo] = {readTodSlaveNrOfSatellitesInfo, readOnly, TOD_SLAVE.NrOfSatellitesInfo},
+    [TOD_SLAVE_Enable] = {readTodSlaveEnable, writeTodSlaveEnable, TOD_SLAVE.Enable},
+    [TOD_SLAVE_InputOk] = {readTodSlaveInputOk, readOnly, TOD_SLAVE.InputOk},
+};
 
 
-    return 0;
-}
 
 int readTodSlaveVersion(char *version, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_VersionReg, &temp_data))
     {
@@ -56,10 +52,9 @@ int readTodSlaveVersion(char *version, size_t size)
     return 0;
 }
 
-
 int readTodSlaveEnable(char *status, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     // enabled
     if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
@@ -84,7 +79,7 @@ int readTodSlaveEnable(char *status, size_t size)
 
 int readTodSlaveProtocol(char *protocol, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
@@ -106,6 +101,9 @@ int readTodSlaveProtocol(char *protocol, size_t size)
     case 2:
         snprintf(protocol, size, "%s", "TSIP");
         break;
+    case 3:
+    	snprintf(protocol, size, "%s", "ESIP");
+    	break;
     default:
         snprintf(protocol, size, "%s", "NA");
         break;
@@ -116,7 +114,7 @@ int readTodSlaveProtocol(char *protocol, size_t size)
 
 int readTodSlaveGnss(char *gnss, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
@@ -157,7 +155,7 @@ int readTodSlaveGnss(char *gnss, size_t size)
 
 int readTodSlaveMsgDisable(char *msgdisable, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
@@ -174,7 +172,7 @@ int readTodSlaveMsgDisable(char *msgdisable, size_t size)
 
 int readTodSlaveCorrection(char *correction, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_CorrectionReg, &temp_data))
@@ -190,7 +188,7 @@ int readTodSlaveCorrection(char *correction, size_t size)
 }
 int readTodSlaveBaudRate(char *baudrate, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_UartBaudRateReg, &temp_data))
@@ -250,7 +248,7 @@ int readTodSlaveBaudRate(char *baudrate, size_t size)
 
 int readTodSlaveInvertedPolarity(char *invertedpolarity, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     // invertedpolarity
     if (0 != readRegister(temp_addr + Ucm_TodSlave_PolarityReg, &temp_data))
@@ -275,7 +273,7 @@ int readTodSlaveInvertedPolarity(char *invertedpolarity, size_t size)
 
 int readTodSlaveInputOk(char *inputok, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     // input ok
     if (0 != readRegister(temp_addr + Ucm_TodSlave_StatusReg, &temp_data))
@@ -304,7 +302,7 @@ int readTodSlaveInputOk(char *inputok, size_t size)
 
 int readTodSlaveUtcOffset(char *utcoffset, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     // input ok
     if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
@@ -320,7 +318,7 @@ int readTodSlaveUtcOffset(char *utcoffset, size_t size)
 }
 int readTodSlaveUtcInfoValid(char *utcinfovalid, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
     {
@@ -343,7 +341,7 @@ int readTodSlaveUtcInfoValid(char *utcinfovalid, size_t size)
 }
 int readTodSlaveLeapAnnounce(char *leapannounce, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
     {
@@ -366,7 +364,7 @@ int readTodSlaveLeapAnnounce(char *leapannounce, size_t size)
 }
 int readTodSlaveLeap59(char *leap59, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
     {
@@ -389,7 +387,7 @@ int readTodSlaveLeap59(char *leap59, size_t size)
 }
 int readTodSlaveLeap61(char *leap61, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
     {
@@ -412,7 +410,7 @@ int readTodSlaveLeap61(char *leap61, size_t size)
 }
 int readTodSlaveLeapInfoValid(char *leapinfovalid, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
     {
@@ -435,7 +433,7 @@ int readTodSlaveLeapInfoValid(char *leapinfovalid, size_t size)
 }
 int readTodSlaveTimeToLeap(char *timetoleap, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     // input ok
     if (0 != readRegister(temp_addr + Ucm_TodSlave_TimeToLeapSecondReg, &temp_data))
@@ -452,7 +450,7 @@ int readTodSlaveTimeToLeap(char *timetoleap, size_t size)
 
 int readTodSlaveGnssFix(char *gnssfix, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
@@ -488,7 +486,7 @@ int readTodSlaveGnssFix(char *gnssfix, size_t size)
 }
 int readTodSlaveGnssFixOk(char *gnssfixok, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
     {
@@ -511,7 +509,7 @@ int readTodSlaveGnssFixOk(char *gnssfixok, size_t size)
 }
 int readTodSlaveSpoofingState(char *spoofingstate, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
@@ -541,7 +539,7 @@ int readTodSlaveSpoofingState(char *spoofingstate, size_t size)
 }
 int readTodSlaveFixAndSpoofingInfoValid(char *fixandspoofinginfovalid, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
     {
@@ -564,7 +562,7 @@ int readTodSlaveFixAndSpoofingInfoValid(char *fixandspoofinginfovalid, size_t si
 }
 int readTodSlaveJammingLevel(char *jamminglevel, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     // input ok
     if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
@@ -581,7 +579,7 @@ int readTodSlaveJammingLevel(char *jamminglevel, size_t size)
 
 int readTodSlaveJammingState(char *jammingstate, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
@@ -614,7 +612,7 @@ int readTodSlaveJammingState(char *jammingstate, size_t size)
 
 int readTodSlaveAntennaState(char *antennastate, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
@@ -650,7 +648,7 @@ int readTodSlaveAntennaState(char *antennastate, size_t size)
 }
 int readTodSlaveAntennaAndJammingInfoValid(char *antennaandjamminginfovalid, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
     {
@@ -673,7 +671,7 @@ int readTodSlaveAntennaAndJammingInfoValid(char *antennaandjamminginfovalid, siz
 }
 int readTodSlaveNrOfSatellitesSeen(char *nrofsatellitesseen, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     // input ok
     if (0 != readRegister(temp_addr + Ucm_TodSlave_SatelliteNumber_Reg_Con, &temp_data))
@@ -689,7 +687,7 @@ int readTodSlaveNrOfSatellitesSeen(char *nrofsatellitesseen, size_t size)
 }
 int readTodSlaveNrOfSatellitesLocked(char *nrofsatelliteslocked, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     // input ok
     if (0 != readRegister(temp_addr + Ucm_TodSlave_SatelliteNumber_Reg_Con, &temp_data))
@@ -705,7 +703,7 @@ int readTodSlaveNrOfSatellitesLocked(char *nrofsatelliteslocked, size_t size)
 }
 int readTodSlaveNrOfSatellitesInfo(char *nrofsatellitesinfo, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
 
     if (0 != readRegister(temp_addr + Ucm_TodSlave_SatelliteNumber_Reg_Con, &temp_data))
     {
@@ -737,7 +735,7 @@ int readTodSlaveNrOfSatellitesInfo(char *nrofsatellitesinfo, size_t size)
 
 int writeTodSlaveProtocol(char *protocol, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     int64_t temp_ctrl = 0x00000000;
@@ -776,7 +774,7 @@ int writeTodSlaveProtocol(char *protocol, size_t size)
 
 int writeTodSlaveGnss(char *gnss, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     int64_t temp_ctrl = 0x00000000;
@@ -827,7 +825,7 @@ int writeTodSlaveGnss(char *gnss, size_t size)
 
 int writeTodSlaveMsgDisable(char *msgdisable, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     int64_t temp_ctrl = 0x00000000;
@@ -851,7 +849,7 @@ int writeTodSlaveMsgDisable(char *msgdisable, size_t size)
 
 int writeTodSlaveCorrection(char *correction, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
     long temp_correction = 0;
     correction = &correction[2];
@@ -868,7 +866,7 @@ int writeTodSlaveCorrection(char *correction, size_t size)
 
 int writeTodSlaveBaudRate(char *baudrate, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 == strncmp(baudrate, "1200", size))
@@ -938,7 +936,7 @@ int writeTodSlaveBaudRate(char *baudrate, size_t size)
 
 int writeTodSlaveInvertedPolarity(char *inverted, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     if (0 == strncmp(inverted, "disabled", size))
@@ -955,7 +953,7 @@ int writeTodSlaveInvertedPolarity(char *inverted, size_t size)
 
 int writeTodSlaveEnable(char *enable, size_t size)
 {
-    temp_addr = TOD.address_range_low;
+    temp_addr = TOD_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
     temp_data &= ~0x0000000F;

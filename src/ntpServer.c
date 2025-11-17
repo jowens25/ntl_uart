@@ -6,204 +6,38 @@
 
 NTP_SERVER_T NTP_SERVER;
 
-int readNtpServerAll(void)
-{
+NTL_PROPERTY_T ntpProperties[NTP_SERVER_NUM_PROPS] = {
 
-    size_t size = 64;
-    readNtpServerVersion(NTP_SERVER.Version, size);
-    readNtpServerStatus(NTP_SERVER.Status, size);
-    readNtpServerIpMode(NTP_SERVER.IpMode, size);
-    readNtpServerIpAddress(NTP_SERVER.IpAddress, size);
-    readNtpServerMacAddress(NTP_SERVER.MacAddress, size);
-    readNtpServerVlanStatus(NTP_SERVER.VlanStatus, size);
-    readNtpServerVlanAddress(NTP_SERVER.VlanAddress, size);
-    readNtpServerUnicastMode(NTP_SERVER.UnicastMode, size);
-    readNtpServerMulticastMode(NTP_SERVER.MulticastMode, size);
-    readNtpServerBroadcastMode(NTP_SERVER.BroadcastMode, size);
-    readNtpServerPrecisionValue(NTP_SERVER.PrecisionValue, size);
-    readNtpServerPollIntervalValue(NTP_SERVER.PollIntervalValue, size);
-    readNtpServerStratumValue(NTP_SERVER.StratumValue, size);
-    readNtpServerReferenceId(NTP_SERVER.ReferenceId, size);
-    readNtpServerSmearingStatus(NTP_SERVER.SmearingStatus, size);
-    readNtpServerLeap61InProgress(NTP_SERVER.Leap61InProgress, size);
-    readNtpServerLeap59InProgress(NTP_SERVER.Leap59InProgress, size);
-    readNtpServerLeap61Status(NTP_SERVER.Leap61Status, size);
-    readNtpServerLeap59Status(NTP_SERVER.Leap59Status, size);
-    readNtpServerUtcOffsetStatus(NTP_SERVER.UtcOffsetStatus, size);
-    readNtpServerUtcOffsetValue(NTP_SERVER.UtcOffsetValue, size);
-    readNtpServerRequestsValue(NTP_SERVER.RequestsValue, size);
-    readNtpServerResponsesValue(NTP_SERVER.ResponsesValue, size);
-    readNtpServerRequestsDroppedValue(NTP_SERVER.RequestsDroppedValue, size);
-    readNtpServerBroadcastsValue(NTP_SERVER.BroadcastsValue, size);
-    readNtpServerClearCountersStatus(NTP_SERVER.ClearCountersStatus, size);
-    return 0;
-}
+    [NTP_SERVER_Version] = {readNtpServerVersion, readOnly, NTP_SERVER.Version},
+    [NTP_SERVER_Status] = {readNtpServerStatus, writeNtpServerStatus, NTP_SERVER.Status},
+    [NTP_SERVER_IpMode] = {readNtpServerIpMode, writeNtpServerIpMode, NTP_SERVER.IpMode},
+    [NTP_SERVER_IpAddress] = {readNtpServerIpAddress, writeNtpServerIpAddress, NTP_SERVER.IpAddress},
+    [NTP_SERVER_MacAddress] = {readNtpServerMacAddress, writeNtpServerMacAddress, NTP_SERVER.MacAddress},
+    [NTP_SERVER_VlanStatus] = {readNtpServerVlanStatus, writeNtpServerVlanStatus, NTP_SERVER.VlanStatus},
+    [NTP_SERVER_VlanAddress] = {readNtpServerVlanAddress, writeNtpServerVlanAddress, NTP_SERVER.VlanAddress},
+    [NTP_SERVER_UnicastMode] = {readNtpServerUnicastMode, writeNtpServerUnicastMode, NTP_SERVER.UnicastMode},
+    [NTP_SERVER_MulticastMode] = {readNtpServerMulticastMode, writeNtpServerMulticastMode, NTP_SERVER.MulticastMode},
+    [NTP_SERVER_BroadcastMode] = {readNtpServerBroadcastMode, writeNtpServerBroadcastMode, NTP_SERVER.BroadcastMode},
+    [NTP_SERVER_PrecisionValue] = {readNtpServerPrecisionValue, writeNtpServerPrecisionValue, NTP_SERVER.PrecisionValue},
+    [NTP_SERVER_PollIntervalValue] = {readNtpServerPollIntervalValue, writeNtpServerPollIntervalValue, NTP_SERVER.PollIntervalValue},
+    [NTP_SERVER_StratumValue] = {readNtpServerStratumValue, writeNtpServerStratumValue, NTP_SERVER.StratumValue},
+    [NTP_SERVER_ReferenceId] = {readNtpServerReferenceId, readOnly, NTP_SERVER.ReferenceId},
+    [NTP_SERVER_SmearingStatus] = {readNtpServerSmearingStatus, readOnly, NTP_SERVER.SmearingStatus},
+    [NTP_SERVER_Leap61InProgress] = {readNtpServerLeap61InProgress, readOnly, NTP_SERVER.Leap61InProgress},
+    [NTP_SERVER_Leap59InProgress] = {readNtpServerLeap59InProgress, readOnly, NTP_SERVER.Leap59InProgress},
+    [NTP_SERVER_Leap61Status] = {readNtpServerLeap61Status, writeNtpServerLeap61Status, NTP_SERVER.Leap61Status},
+    [NTP_SERVER_Leap59Status] = {readNtpServerLeap59Status, writeNtpServerLeap59Status, NTP_SERVER.Leap59Status},
+    [NTP_SERVER_UtcOffsetStatus] = {readNtpServerUtcOffsetStatus, writeNtpServerUtcOffsetStatus, NTP_SERVER.UtcOffsetStatus},
+    [NTP_SERVER_UtcOffsetValue] = {readNtpServerUtcOffsetValue, writeNtpServerUtcOffsetValue, NTP_SERVER.UtcOffsetValue},
+    [NTP_SERVER_RequestsValue] = {readNtpServerRequestsValue, readOnly, NTP_SERVER.RequestsValue},
+    [NTP_SERVER_ResponsesValue] = {readNtpServerResponsesValue, readOnly, NTP_SERVER.ResponsesValue},
+    [NTP_SERVER_RequestsDroppedValue] = {readNtpServerRequestsDroppedValue, readOnly, NTP_SERVER.RequestsDroppedValue},
+    [NTP_SERVER_BroadcastsValue] = {readNtpServerBroadcastsValue, readOnly, NTP_SERVER.BroadcastsValue},
+    [NTP_SERVER_ClearCountersStatus] = {readNtpServerClearCountersStatus, writeNtpServerClearCountersStatus, NTP_SERVER.ClearCountersStatus},
 
-int readWriteNtpProperty(int prop, char *newValue)
-{
-    size_t size = 32;
-    int32_t core = NTP_SERVER.core_type;
-
-    int (*read_func)(char *, size_t) = NULL;
-    int (*write_func)(char *, size_t) = NULL;
-    char *struct_value = NULL;
-
-    switch (prop)
-    {
-
-    case NTP_SERVER_Version:
-        read_func = readNtpServerVersion;
-        write_func = readOnly;
-        struct_value = NTP_SERVER.Version;
-        break;
-
-    case NTP_SERVER_Status:
-        read_func = readNtpServerStatus;
-        write_func = writeNtpServerStatus;
-        struct_value = NTP_SERVER.Status;
-        break;
-
-    case NTP_SERVER_IpMode:
-        read_func = readNtpServerIpMode;
-        write_func = writeNtpServerIpMode;
-        struct_value = NTP_SERVER.IpMode;
-        break;
-    case NTP_SERVER_IpAddress:
-        read_func = readNtpServerIpAddress;
-        write_func = writeNtpServerIpAddress;
-        struct_value = NTP_SERVER.IpAddress;
-        break;
-    case NTP_SERVER_MacAddress:
-        read_func = readNtpServerMacAddress;
-        write_func = writeNtpServerMacAddress;
-        struct_value = NTP_SERVER.MacAddress;
-        break;
-    case NTP_SERVER_VlanStatus:
-        read_func = readNtpServerVlanStatus;
-        write_func = writeNtpServerVlanStatus;
-        struct_value = NTP_SERVER.VlanStatus;
-        break;
-    case NTP_SERVER_VlanAddress:
-        read_func = readNtpServerVlanAddress;
-        write_func = writeNtpServerVlanAddress;
-        struct_value = NTP_SERVER.VlanAddress;
-        break;
-    case NTP_SERVER_UnicastMode:
-        read_func = readNtpServerUnicastMode;
-        write_func = writeNtpServerUnicastMode;
-        struct_value = NTP_SERVER.UnicastMode;
-        break;
-    case NTP_SERVER_MulticastMode:
-        read_func = readNtpServerMulticastMode;
-        write_func = writeNtpServerMulticastMode;
-        struct_value = NTP_SERVER.MulticastMode;
-        break;
-    case NTP_SERVER_BroadcastMode:
-        read_func = readNtpServerBroadcastMode;
-        write_func = writeNtpServerBroadcastMode;
-        struct_value = NTP_SERVER.BroadcastMode;
-        break;
-    case NTP_SERVER_PrecisionValue:
-        read_func = readNtpServerPrecisionValue;
-        write_func = writeNtpServerPrecisionValue;
-        struct_value = NTP_SERVER.PrecisionValue;
-        break;
-    case NTP_SERVER_PollIntervalValue:
-        read_func = readNtpServerPollIntervalValue;
-        write_func = writeNtpServerPollIntervalValue;
-        struct_value = NTP_SERVER.PollIntervalValue;
-        break;
-    case NTP_SERVER_StratumValue:
-        read_func = readNtpServerStratumValue;
-        write_func = writeNtpServerStratumValue;
-        struct_value = NTP_SERVER.StratumValue;
-        break;
-    case NTP_SERVER_ReferenceId:
-        read_func = readNtpServerReferenceId;
-        write_func = readOnly;
-        struct_value = NTP_SERVER.ReferenceId;
-        break;
-    case NTP_SERVER_SmearingStatus:
-        read_func = readNtpServerSmearingStatus;
-        write_func = readOnly;
-        struct_value = NTP_SERVER.SmearingStatus;
-        break;
-    case NTP_SERVER_Leap61InProgress:
-        read_func = readNtpServerLeap61InProgress;
-        write_func = readOnly;
-        struct_value = NTP_SERVER.Leap61InProgress;
-        break;
-    case NTP_SERVER_Leap59InProgress:
-        read_func = readNtpServerLeap59InProgress;
-        write_func = readOnly;
-        struct_value = NTP_SERVER.Leap59InProgress;
-        break;
-    case NTP_SERVER_Leap61Status:
-        read_func = readNtpServerLeap61Status;
-        write_func = writeNtpServerLeap61Status;
-        struct_value = NTP_SERVER.Leap61Status;
-        break;
-    case NTP_SERVER_Leap59Status:
-        read_func = readNtpServerLeap59Status;
-        write_func = writeNtpServerLeap59Status;
-        struct_value = NTP_SERVER.Leap59Status;
-        break;
-    case NTP_SERVER_UtcOffsetStatus:
-        read_func = readNtpServerUtcOffsetStatus;
-        write_func = writeNtpServerUtcOffsetStatus;
-        struct_value = NTP_SERVER.UtcOffsetStatus;
-        break;
-    case NTP_SERVER_UtcOffsetValue:
-        read_func = readNtpServerUtcOffsetValue;
-        write_func = writeNtpServerUtcOffsetValue;
-        struct_value = NTP_SERVER.UtcOffsetValue;
-        break;
-    case NTP_SERVER_RequestsValue:
-        read_func = readNtpServerRequestsValue;
-        write_func = readOnly;
-        struct_value = NTP_SERVER.RequestsValue;
-        break;
-    case NTP_SERVER_ResponsesValue:
-        read_func = readNtpServerResponsesValue;
-        write_func = readOnly;
-        struct_value = NTP_SERVER.ResponsesValue;
-        break;
-    case NTP_SERVER_RequestsDroppedValue:
-        read_func = readNtpServerRequestsDroppedValue;
-        write_func = readOnly;
-        struct_value = NTP_SERVER.RequestsDroppedValue;
-        break;
-    case NTP_SERVER_BroadcastsValue:
-        read_func = readNtpServerBroadcastsValue;
-        write_func = readOnly;
-        struct_value = NTP_SERVER.BroadcastsValue;
-        break;
-    case NTP_SERVER_ClearCountersStatus:
-        read_func = readNtpServerClearCountersStatus;
-        write_func = writeNtpServerClearCountersStatus;
-        struct_value = NTP_SERVER.ClearCountersStatus;
-        break;
-    }
+};
 
 
-    // read fpga, return struct
-    if (strncmp(newValue, "?", 1) == 0)
-    {
-        read_func(struct_value, size);
-    }
-
-    // write new value to fpga, read fpga, populate struct
-    else if (strlen(newValue) != 0)
-    {
-        write_func(newValue, size);
-        read_func(struct_value, size);
-    }
-
-    snprintf(ntlRsp, size, "$NTL,%d,%d,%s\r\n", core, prop, struct_value);
-    UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
-
-    return 0;
-}
 
 // read Ntp Server Status ======================================================
 int readNtpServerStatus(char *status, size_t size)
@@ -989,7 +823,7 @@ int readNtpServerBroadcastsValue(char *value, size_t size)
         return -1;
     }
     // ui->NtpServerRequestsValue->setText(QString::number(temp_data));
-    snprintf(value, size, "%ld", temp_data);
+    snprintf(value, size, "%lld", temp_data);
 
     return 0;
 }
@@ -1277,7 +1111,7 @@ int writeNtpServerIpAddress(char *ipAddress, size_t size)
     {
         if (0 != ipv4_addr_to_register_value(ipAddress, size))
         {
-            //printf("failed to write ipv4 crap\n");
+            // printf("failed to write ipv4 crap\n");
             return -4;
         }
     }
@@ -1298,7 +1132,7 @@ int ipv4_addr_to_register_value(char *ipAddress, size_t size)
 
     if (strchr(ipAddress, '.'))
     { // ipv4
-        //printf("ipv4 case \n");
+        // printf("ipv4 case \n");
 
         char *token;
         for (int i = 0; i < 4; i++)
@@ -1327,15 +1161,15 @@ int ipv4_addr_to_register_value(char *ipAddress, size_t size)
             if (i == 0)
             {
                 token = strtok(ipAddress, ":"); // grabs first token
-                //printf("first token: %s\n", token);
+                // printf("first token: %s\n", token);
                 if (0 == strncmp(token, "ffff", 5))
                 {
                     token = strtok(NULL, ":");
-                   // printf("ffff so it is a mapped ipv4\n");
+                    // printf("ffff so it is a mapped ipv4\n");
                 }
                 else
                 {
-                    //printf("not ffff, not mapped so exit\n");
+                    // printf("not ffff, not mapped so exit\n");
                     temp_ip[0] = 0;
                     temp_ip[1] = 0;
                     temp_ip[2] = 0;
@@ -1351,26 +1185,26 @@ int ipv4_addr_to_register_value(char *ipAddress, size_t size)
             if (token == NULL)
                 break;
 
-            //printf("token: %s \n", token);
-            // Extract first two characters
+            // printf("token: %s \n", token);
+            //  Extract first two characters
             strncpy(byte, token, 2);
 
             snprintf(byte, 3, "%2s", token);
 
-            //printf("byte: %s \n", byte);
+            // printf("byte: %s \n", byte);
 
             temp_ip[i] = strtol(byte, NULL, 16);
 
             // Extract next two characters
             snprintf(byte, 3, "%2s", token + 2);
-            //printf("byte: %s \n", byte);
+            // printf("byte: %s \n", byte);
 
             temp_ip[i + 1] = strtol(byte, NULL, 16);
         }
     }
     else
     {
-       // printf("big fat else\n");
+        // printf("big fat else\n");
         return -1;
     }
     temp_data = 0x00000000;
@@ -1384,13 +1218,13 @@ int ipv4_addr_to_register_value(char *ipAddress, size_t size)
 
     if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
     {
-        //printf("failed to write config \n");
+        // printf("failed to write config \n");
         return -1;
     }
     temp_data = 0x00000008; // write
     if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
     {
-        //printf("failed to write control \n");
+        // printf("failed to write control \n");
         return -1;
     }
     return 0;

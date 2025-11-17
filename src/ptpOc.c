@@ -7,73 +7,72 @@
 
 PTP_OC_T PTP_OC;
 
-int readPtpOcAll(void)
-{
+NTL_PROPERTY_T ptpProperties[PTP_OC_NUM_PROPS] = {
 
-    size_t size = 64;
-    readPtpOcVersion(PTP_OC.Version, size);
-    readPtpOcVlanAddress(PTP_OC.VlanAddress, size);
-    readPtpOcVlanStatus(PTP_OC.VlanStatus, size);
-    readPtpOcProfile(PTP_OC.Profile, size);
-    readPtpOcLayer(PTP_OC.Layer, size);
-    readPtpOcDelayMechanismValue(PTP_OC.DelayMechanismValue, size);
-    readPtpOcIpAddress(PTP_OC.IpAddress, size);
-    readPtpOcStatus(PTP_OC.Status, size);
-    readPtpOcDefaultDsClockId(PTP_OC.DefaultDsClockId, size);
-    readPtpOcDefaultDsDomain(PTP_OC.DefaultDsDomain, size);
-    readPtpOcDefaultDsPriority1(PTP_OC.DefaultDsPriority1, size);
-    readPtpOcDefaultDsPriority2(PTP_OC.DefaultDsPriority2, size);
-    readPtpOcDefaultDsAccuracy(PTP_OC.DefaultDsAccuracy, size);
-    readPtpOcDefaultDsClass(PTP_OC.DefaultDsClass, size);
-    readPtpOcDefaultDsVariance(PTP_OC.DefaultDsVariance, size);
-    readPtpOcDefaultDsShortId(PTP_OC.DefaultDsShortId, size);
-    readPtpOcDefaultDsInaccuracy(PTP_OC.DefaultDsInaccuracy, size);
-    readPtpOcDefaultDsNumberOfPorts(PTP_OC.DefaultDsNumberOfPorts, size);
-    readPtpOcDefaultDsTwoStepStatus(PTP_OC.DefaultDsTwoStepStatus, size);
-    readPtpOcDefaultDsSignalingStatus(PTP_OC.DefaultDsSignalingStatus, size);
-    readPtpOcDefaultDsMasterOnlyStatus(PTP_OC.DefaultDsMasterOnlyStatus, size);
-    readPtpOcDefaultDsSlaveOnlyStatus(PTP_OC.DefaultDsSlaveOnlyStatus, size);
-    readPtpOcDefaultDsListedUnicastSlavesOnlyStatus(PTP_OC.DefaultDsListedUnicastSlavesOnlyStatus, size);
-    readPtpOcDefaultDsDisableOffsetCorrectionStatus(PTP_OC.DefaultDsDisableOffsetCorrectionStatus, size);
-    readPtpOcPortDsPeerDelayValue(PTP_OC.PortDsPeerDelayValue, size);
-    readPtpOcPortDsState(PTP_OC.PortDsState, size);
-    readPtpOcPortDsAsymmetryValue(PTP_OC.PortDsAsymmetryValue, size);
-    readPtpOcPortDsMaxPeerDelayValue(PTP_OC.PortDsMaxPeerDelayValue, size);
-    readPtpOcPortDsPDelayReqLogMsgIntervalValue(PTP_OC.PortDsPDelayReqLogMsgIntervalValue, size);
-    readPtpOcPortDsDelayReqLogMsgIntervalValue(PTP_OC.PortDsDelayReqLogMsgIntervalValue, size);
-    readPtpOcPortDsDelayReceiptTimeoutValue(PTP_OC.PortDsDelayReceiptTimeoutValue, size);
-    readPtpOcPortDsAnnounceLogMsgIntervalValue(PTP_OC.PortDsAnnounceLogMsgIntervalValue, size);
-    readPtpOcPortDsAnnounceReceiptTimeoutValue(PTP_OC.PortDsAnnounceReceiptTimeoutValue, size);
-    readPtpOcPortDsSyncLogMsgIntervalValue(PTP_OC.PortDsSyncLogMsgIntervalValue, size);
-    readPtpOcPortDsSyncReceiptTimeoutValue(PTP_OC.PortDsSyncReceiptTimeoutValue, size);
-    readPtpOcCurrentDsStepsRemovedValue(PTP_OC.CurrentDsStepsRemovedValue, size);
-    readPtpOcCurrentDsOffsetValue(PTP_OC.CurrentDsOffsetValue, size);
-    readPtpOcCurrentDsDelayValue(PTP_OC.CurrentDsDelayValue, size);
-    readPtpOcParentDsParentClockIdValue(PTP_OC.ParentDsParentClockIdValue, size);
-    readPtpOcParentDsGmClockIdValue(PTP_OC.ParentDsGmClockIdValue, size);
-    readPtpOcParentDsGmPriority1Value(PTP_OC.ParentDsGmPriority1Value, size);
-    readPtpOcParentDsGmPriority2Value(PTP_OC.ParentDsGmPriority2Value, size);
-    readPtpOcParentDsGmVarianceValue(PTP_OC.ParentDsGmVarianceValue, size);
-    readPtpOcParentDsGmAccuracyValue(PTP_OC.ParentDsGmAccuracyValue, size);
-    readPtpOcParentDsGmClassValue(PTP_OC.ParentDsGmClassValue, size);
-    readPtpOcParentDsGmShortIdValue(PTP_OC.ParentDsGmShortIdValue, size);
-    readPtpOcParentDsGmInaccuracyValue(PTP_OC.ParentDsGmInaccuracyValue, size);
-    readPtpOcParentDsNwInaccuracyValue(PTP_OC.ParentDsNwInaccuracyValue, size);
-    readPtpOcTimePropertiesDsTimeSourceValue(PTP_OC.TimePropertiesDsTimeSourceValue, size);
-    readPtpOcTimePropertiesDsPtpTimescaleStatus(PTP_OC.TimePropertiesDsPtpTimescaleStatus, size);
-    readPtpOcTimePropertiesDsFreqTraceableStatus(PTP_OC.TimePropertiesDsFreqTraceableStatus, size);
-    readPtpOcTimePropertiesDsTimeTraceableStatus(PTP_OC.TimePropertiesDsTimeTraceableStatus, size);
-    readPtpOcTimePropertiesDsLeap61Status(PTP_OC.TimePropertiesDsLeap61Status, size);
-    readPtpOcTimePropertiesDsLeap59Status(PTP_OC.TimePropertiesDsLeap59Status, size);
-    readPtpOcTimePropertiesDsUtcOffsetValStatus(PTP_OC.TimePropertiesDsUtcOffsetValStatus, size);
-    readPtpOcTimePropertiesDsUtcOffsetValue(PTP_OC.TimePropertiesDsUtcOffsetValue, size);
-    readPtpOcTimePropertiesDsCurrentOffsetValue(PTP_OC.TimePropertiesDsCurrentOffsetValue, size);
-    readPtpOcTimePropertiesDsJumpSecondsValue(PTP_OC.TimePropertiesDsJumpSecondsValue, size);
-    readPtpOcTimePropertiesDsNextJumpValue(PTP_OC.TimePropertiesDsNextJumpValue, size);
-    readPtpOcTimePropertiesDsDisplayNameValue(PTP_OC.TimePropertiesDsDisplayNameValue, size);
+    [PTP_OC_Version] = {readPtpOcVersion, readOnly, PTP_OC.Version},
+    [PTP_OC_VlanAddress] = {readPtpOcVlanAddress, writePtpOcVlanAddress, PTP_OC.VlanAddress},
+    [PTP_OC_VlanStatus] = {readPtpOcVlanStatus, writePtpOcVlanStatus, PTP_OC.VlanStatus},
+    [PTP_OC_Profile] = {readPtpOcProfile, writePtpOcProfile, PTP_OC.Profile},
+    [PTP_OC_Layer] = {readPtpOcLayer, writePtpOcLayer, PTP_OC.Layer},
+    [PTP_OC_DelayMechanismValue] = {readPtpOcDelayMechanismValue, writePtpOcDelayMechanismValue, PTP_OC.DelayMechanismValue},
+    [PTP_OC_IpAddress] = {readPtpOcIpAddress, writePtpOcIpAddress, PTP_OC.IpAddress},
+    [PTP_OC_Status] = {readPtpOcStatus, writePtpOcStatus, PTP_OC.Status},
+    [PTP_OC_DefaultDsClockId] = {readPtpOcDefaultDsClockId, writePtpOcDefaultDsClockIdValue, PTP_OC.DefaultDsClockId},
+    [PTP_OC_DefaultDsDomain] = {readPtpOcDefaultDsDomain, writePtpOcDefaultDsDomainValue, PTP_OC.DefaultDsDomain},
+    [PTP_OC_DefaultDsPriority1] = {readPtpOcDefaultDsPriority1, writePtpOcDefaultDsPriority1Value, PTP_OC.DefaultDsPriority1},
+    [PTP_OC_DefaultDsPriority2] = {readPtpOcDefaultDsPriority2, writePtpOcDefaultDsPriority2Value, PTP_OC.DefaultDsPriority2},
+    [PTP_OC_DefaultDsAccuracy] = {readPtpOcDefaultDsAccuracy, writePtpOcDefaultDsAccuracyValue, PTP_OC.DefaultDsAccuracy},
+    [PTP_OC_DefaultDsClass] = {readPtpOcDefaultDsClass, writePtpOcDefaultDsClassValue, PTP_OC.DefaultDsClass},
+    [PTP_OC_DefaultDsVariance] = {readPtpOcDefaultDsVariance, writePtpOcDefaultDsVarianceValue, PTP_OC.DefaultDsVariance},
+    [PTP_OC_DefaultDsShortId] = {readPtpOcDefaultDsShortId, writePtpOcDefaultDsShortIdValue, PTP_OC.DefaultDsShortId},
+    [PTP_OC_DefaultDsInaccuracy] = {readPtpOcDefaultDsInaccuracy, writePtpOcDefaultDsInaccuracyValue, PTP_OC.DefaultDsInaccuracy},
+    [PTP_OC_DefaultDsNumberOfPorts] = {readPtpOcDefaultDsNumberOfPorts, readOnly, PTP_OC.DefaultDsNumberOfPorts},
+    [PTP_OC_DefaultDsTwoStepStatus] = {readPtpOcDefaultDsTwoStepStatus, writePtpOcDefaultDsTwoStepStatus, PTP_OC.DefaultDsTwoStepStatus},
+    [PTP_OC_DefaultDsSignalingStatus] = {readPtpOcDefaultDsSignalingStatus, writePtpOcDefaultDsSignalingStatus, PTP_OC.DefaultDsSignalingStatus},
+    [PTP_OC_DefaultDsMasterOnlyStatus] = {readPtpOcDefaultDsMasterOnlyStatus, writePtpOcDefaultDsMasterOnlyStatus, PTP_OC.DefaultDsMasterOnlyStatus},
+    [PTP_OC_DefaultDsSlaveOnlyStatus] = {readPtpOcDefaultDsSlaveOnlyStatus, writePtpOcDefaultDsSlaveOnlyStatus, PTP_OC.DefaultDsSlaveOnlyStatus},
+    [PTP_OC_DefaultDsListedUnicastSlavesOnlyStatus] = {readPtpOcDefaultDsListedUnicastSlavesOnlyStatus, writePtpOcDefaultDsListedUnicastSlavesOnlyStatus, PTP_OC.DefaultDsListedUnicastSlavesOnlyStatus},
+    [PTP_OC_DefaultDsDisableOffsetCorrectionStatus] = {readPtpOcDefaultDsDisableOffsetCorrectionStatus, writePtpOcDefaultDsDisableOffsetCorrectionStatus, PTP_OC.DefaultDsDisableOffsetCorrectionStatus},
+    [PTP_OC_PortDsPeerDelayValue] = {readPtpOcPortDsPeerDelayValue, readOnly, PTP_OC.PortDsPeerDelayValue},
+    [PTP_OC_PortDsState] = {readPtpOcPortDsState, readOnly, PTP_OC.PortDsState},
+    [PTP_OC_PortDsAsymmetryValue] = {readPtpOcPortDsAsymmetryValue, writePtpOcPortDsAsymmetryValue, PTP_OC.PortDsAsymmetryValue},
+    [PTP_OC_PortDsMaxPeerDelayValue] = {readPtpOcPortDsMaxPeerDelayValue, writePtpOcPortDsMaxPeerDelayValue, PTP_OC.PortDsMaxPeerDelayValue},
+    [PTP_OC_PortDsPDelayReqLogMsgIntervalValue] = {readPtpOcPortDsPDelayReqLogMsgIntervalValue, writePtpOcPortDsPDelayReqLogMsgIntervalValue, PTP_OC.PortDsPDelayReqLogMsgIntervalValue},
+    [PTP_OC_PortDsDelayReqLogMsgIntervalValue] = {readPtpOcPortDsDelayReqLogMsgIntervalValue, writePtpOcPortDsDelayReqLogMsgIntervalValue, PTP_OC.PortDsDelayReqLogMsgIntervalValue},
+    [PTP_OC_PortDsDelayReceiptTimeoutValue] = {readPtpOcPortDsDelayReceiptTimeoutValue, writePtpOcPortDsDelayReceiptTimeoutValue, PTP_OC.PortDsDelayReceiptTimeoutValue},
+    [PTP_OC_PortDsAnnounceLogMsgIntervalValue] = {readPtpOcPortDsAnnounceLogMsgIntervalValue, writePtpOcPortDsAnnounceLogMsgIntervalValue, PTP_OC.PortDsAnnounceLogMsgIntervalValue},
+    [PTP_OC_PortDsAnnounceReceiptTimeoutValue] = {readPtpOcPortDsAnnounceReceiptTimeoutValue, writePtpOcPortDsAnnounceReceiptTimeoutValue, PTP_OC.PortDsAnnounceReceiptTimeoutValue},
+    [PTP_OC_PortDsSyncLogMsgIntervalValue] = {readPtpOcPortDsSyncLogMsgIntervalValue, writePtpOcPortDsSyncLogMsgIntervalValue, PTP_OC.PortDsSyncLogMsgIntervalValue},
+    [PTP_OC_PortDsSyncReceiptTimeoutValue] = {readPtpOcPortDsSyncReceiptTimeoutValue, writePtpOcPortDsSyncReceiptTimeoutValue, PTP_OC.PortDsSyncReceiptTimeoutValue},
+    [PTP_OC_CurrentDsStepsRemovedValue] = {readPtpOcCurrentDsStepsRemovedValue, readOnly, PTP_OC.CurrentDsStepsRemovedValue},
+    [PTP_OC_CurrentDsOffsetValue] = {readPtpOcCurrentDsOffsetValue, readOnly, PTP_OC.CurrentDsOffsetValue},
+    [PTP_OC_CurrentDsDelayValue] = {readPtpOcCurrentDsDelayValue, readOnly, PTP_OC.CurrentDsDelayValue},
+    [PTP_OC_ParentDsParentClockIdValue] = {readPtpOcParentDsParentClockIdValue, readOnly, PTP_OC.ParentDsParentClockIdValue},
+    [PTP_OC_ParentDsGmClockIdValue] = {readPtpOcParentDsGmClockIdValue, readOnly, PTP_OC.ParentDsGmClockIdValue},
+    [PTP_OC_ParentDsGmPriority1Value] = {readPtpOcParentDsGmPriority1Value, readOnly, PTP_OC.ParentDsGmPriority1Value},
+    [PTP_OC_ParentDsGmPriority2Value] = {readPtpOcParentDsGmPriority2Value, readOnly, PTP_OC.ParentDsGmPriority2Value},
+    [PTP_OC_ParentDsGmVarianceValue] = {readPtpOcParentDsGmVarianceValue, readOnly, PTP_OC.ParentDsGmVarianceValue},
+    [PTP_OC_ParentDsGmAccuracyValue] = {readPtpOcParentDsGmAccuracyValue, readOnly, PTP_OC.ParentDsGmAccuracyValue},
+    [PTP_OC_ParentDsGmClassValue] = {readPtpOcParentDsGmClassValue, readOnly, PTP_OC.ParentDsGmClassValue},
+    [PTP_OC_ParentDsGmShortIdValue] = {readPtpOcParentDsGmShortIdValue, readOnly, PTP_OC.ParentDsGmShortIdValue},
+    [PTP_OC_ParentDsGmInaccuracyValue] = {readPtpOcParentDsGmInaccuracyValue, readOnly, PTP_OC.ParentDsGmInaccuracyValue},
+    [PTP_OC_ParentDsNwInaccuracyValue] = {readPtpOcParentDsNwInaccuracyValue, readOnly, PTP_OC.ParentDsNwInaccuracyValue},
+    [PTP_OC_TimePropertiesDsTimeSourceValue] = {readPtpOcTimePropertiesDsTimeSourceValue, writePtpOcTimePropertiesDsTimeSourceValue, PTP_OC.TimePropertiesDsTimeSourceValue},
+    [PTP_OC_TimePropertiesDsPtpTimescaleStatus] = {readPtpOcTimePropertiesDsPtpTimescaleStatus, writePtpOcTimePropertiesDsPtpTimescaleStatus, PTP_OC.TimePropertiesDsPtpTimescaleStatus},
+    [PTP_OC_TimePropertiesDsFreqTraceableStatus] = {readPtpOcTimePropertiesDsFreqTraceableStatus, writePtpOcTimePropertiesDsFreqTraceableStatus, PTP_OC.TimePropertiesDsFreqTraceableStatus},
+    [PTP_OC_TimePropertiesDsTimeTraceableStatus] = {readPtpOcTimePropertiesDsTimeTraceableStatus, writePtpOcTimePropertiesDsTimeTraceableStatus, PTP_OC.TimePropertiesDsTimeTraceableStatus},
+    [PTP_OC_TimePropertiesDsLeap61Status] = {readPtpOcTimePropertiesDsLeap61Status, writePtpOcTimePropertiesDsLeap61Status, PTP_OC.TimePropertiesDsLeap61Status},
+    [PTP_OC_TimePropertiesDsLeap59Status] = {readPtpOcTimePropertiesDsLeap59Status, writePtpOcTimePropertiesDsLeap59Status, PTP_OC.TimePropertiesDsLeap59Status},
+    [PTP_OC_TimePropertiesDsUtcOffsetValStatus] = {readPtpOcTimePropertiesDsUtcOffsetValStatus, writePtpOcTimePropertiesDsUtcOffsetValStatus, PTP_OC.TimePropertiesDsUtcOffsetValStatus},
+    [PTP_OC_TimePropertiesDsUtcOffsetValue] = {readPtpOcTimePropertiesDsUtcOffsetValue, writePtpOcTimePropertiesDsUtcOffsetValue, PTP_OC.TimePropertiesDsUtcOffsetValue},
+    [PTP_OC_TimePropertiesDsCurrentOffsetValue] = {readPtpOcTimePropertiesDsCurrentOffsetValue, writePtpOcTimePropertiesDsCurrentOffsetValue, PTP_OC.TimePropertiesDsCurrentOffsetValue},
+    [PTP_OC_TimePropertiesDsJumpSecondsValue] = {readPtpOcTimePropertiesDsJumpSecondsValue, writePtpOcTimePropertiesDsJumpSecondsValue, PTP_OC.TimePropertiesDsJumpSecondsValue},
+    [PTP_OC_TimePropertiesDsNextJumpValue] = {readPtpOcTimePropertiesDsNextJumpValue, writePtpOcTimePropertiesDsNextJumpValue, PTP_OC.TimePropertiesDsNextJumpValue},
+    [PTP_OC_TimePropertiesDsDisplayNameValue] = {readPtpOcTimePropertiesDsDisplayNameValue, writePtpOcTimePropertiesDsDisplayNameValue, PTP_OC.TimePropertiesDsDisplayNameValue},
 
-    return 0;
-}
+};
+
+
 
 // Version
 int readPtpOcVersion(char *value, size_t size)
@@ -103,7 +102,7 @@ int readPtpOcVlanAddress(char *vlanAddr, size_t size)
         return -1;
     }
     temp_data &= 0x0000FFFF;
-    snprintf(vlanAddr, size, "0x%04lx", temp_data);
+    snprintf(vlanAddr, size, "0x%04llx", temp_data);
     return 0;
 }
 // VlanStatus
@@ -485,7 +484,7 @@ int readPtpOcDefaultDsDomain(char *domain, size_t size)
                 return -3;
             }
 
-            snprintf(domain, size, "0x%02lx", ((temp_data >> 0) & 0x000000FF));
+            snprintf(domain, size, "0x%02llx", ((temp_data >> 0) & 0x000000FF));
             break;
             // ui->PtpOcDefaultDsDomainValue->setText(QString("0x%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
         }
@@ -527,7 +526,7 @@ int readPtpOcDefaultDsPriority1(char *priority1, size_t size)
                 return -3;
             }
 
-            snprintf(priority1, size, "0x%02lx", ((temp_data >> 24) & 0x000000FF));
+            snprintf(priority1, size, "0x%02llx", ((temp_data >> 24) & 0x000000FF));
             break;
             // ui->PtpOcDefaultDsDomainValue->setText(QString("0x%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
         }
@@ -569,7 +568,7 @@ int readPtpOcDefaultDsPriority2(char *priority2, size_t size)
                 return -3;
             }
 
-            snprintf(priority2, size, "0x%02lx", ((temp_data >> 16) & 0x000000FF));
+            snprintf(priority2, size, "0x%02llx", ((temp_data >> 16) & 0x000000FF));
             break;
             // ui->PtpOcDefaultDsDomainValue->setText(QString("0x%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
         }
@@ -654,7 +653,7 @@ int readPtpOcDefaultDsClass(char *class, size_t size)
                 return -3;
             }
 
-            snprintf(class, size, "0x%02lx", ((temp_data >> 24) & 0x000000FF));
+            snprintf(class, size, "0x%02llx", ((temp_data >> 24) & 0x000000FF));
             break;
             // ui->PtpOcDefaultDsDomainValue->setText(QString("0x%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
         }
@@ -696,7 +695,7 @@ int readPtpOcDefaultDsVariance(char *variance, size_t size)
                 return -3;
             }
 
-            snprintf(variance, size, "0x%04lx", ((temp_data >> 0) & 0x0000FFFF));
+            snprintf(variance, size, "0x%04llx", ((temp_data >> 0) & 0x0000FFFF));
             break;
             // ui->PtpOcDefaultDsDomainValue->setText(QString("0x%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
         }
@@ -738,7 +737,7 @@ int readPtpOcDefaultDsShortId(char *id, size_t size)
                 return -3;
             }
 
-            snprintf(id, size, "0x%04lx", temp_data);
+            snprintf(id, size, "0x%04llx", temp_data);
             break;
             // ui->PtpOcDefaultDsDomainValue->setText(QString("0x%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
         }
@@ -1956,7 +1955,7 @@ int readPtpOcParentDsGmPriority1Value(char *priority, size_t size)
 
             temp_priority = ((temp_data >> 24) & 0x000000FF);
 
-            snprintf(priority, size, "0x%02lx", temp_priority);
+            snprintf(priority, size, "0x%02llx", temp_priority);
 
             break;
 
@@ -2002,7 +2001,7 @@ int readPtpOcParentDsGmPriority2Value(char *priority, size_t size)
 
             temp_priority = ((temp_data >> 16) & 0x000000FF);
 
-            snprintf(priority, size, "0x%02lx", temp_priority);
+            snprintf(priority, size, "0x%02llx", temp_priority);
 
             break;
 
@@ -2048,7 +2047,7 @@ int readPtpOcParentDsGmVarianceValue(char *variance, size_t size)
 
             temp_variance = ((temp_data >> 0) & 0x0000FFFF);
 
-            snprintf(variance, size, "0x%02lx", temp_variance);
+            snprintf(variance, size, "0x%02llx", temp_variance);
 
             break;
         }
@@ -2092,7 +2091,7 @@ int readPtpOcParentDsGmAccuracyValue(char *accuracy, size_t size)
 
             temp_accuracy = ((temp_data >> 16) & 0x000000FF);
 
-            snprintf(accuracy, size, "%02ld", temp_accuracy);
+            snprintf(accuracy, size, "%02lld", temp_accuracy);
 
             break;
         }
@@ -2136,7 +2135,7 @@ int readPtpOcParentDsGmClassValue(char *class, size_t size)
 
             temp_class = ((temp_data >> 24) & 0x000000FF);
 
-            snprintf(class, size, "0x%02lx", temp_class);
+            snprintf(class, size, "0x%02llx", temp_class);
 
             break;
         }
@@ -2180,7 +2179,7 @@ int readPtpOcParentDsGmShortIdValue(char *id, size_t size)
 
             temp_id = temp_data;
 
-            snprintf(id, size, "0x%04lx", temp_id);
+            snprintf(id, size, "0x%04llx", temp_id);
 
             break;
         }
@@ -2317,7 +2316,7 @@ int readPtpOcTimePropertiesDsTimeSourceValue(char *source, size_t size)
 
             temp_source = (temp_data >> 0) & 0x000000FF;
 
-            snprintf(source, size, "0x%02lx", temp_source);
+            snprintf(source, size, "0x%02llx", temp_source);
 
             break;
         }
@@ -3396,7 +3395,7 @@ int ptp_ipv4_addr_to_register_value(char *ipAddress, size_t size)
 
     if (strchr(ipAddress, '.'))
     { // ipv4
-        printf("ipv4 case \n");
+        //printf("ipv4 case \n");
 
         char *token;
         for (int i = 0; i < 4; i++)
@@ -3410,7 +3409,7 @@ int ptp_ipv4_addr_to_register_value(char *ipAddress, size_t size)
 
     else if (strchr(ipAddress, ':'))
     {
-        printf("ipv6 going to ipv4?");
+        //printf("ipv6 going to ipv4?");
         // temp_ip[0] = 0;
         // temp_ip[1] = 0;
         // temp_ip[2] = 0;
@@ -3426,15 +3425,15 @@ int ptp_ipv4_addr_to_register_value(char *ipAddress, size_t size)
             if (i == 0)
             {
                 token = strtok(ipAddress, ":"); // grabs first token
-                printf("first token: %s\n", token);
+               // printf("first token: %s\n", token);
                 if (0 == strncmp(token, "ffff", 5))
                 {
                     token = strtok(NULL, ":");
-                    printf("ffff so it is a mapped ipv4\n");
+                    //printf("ffff so it is a mapped ipv4\n");
                 }
                 else
                 {
-                    printf("not ffff, not mapped so exit\n");
+                   // printf("not ffff, not mapped so exit\n");
                     temp_ip[0] = 0;
                     temp_ip[1] = 0;
                     temp_ip[2] = 0;
@@ -3450,26 +3449,26 @@ int ptp_ipv4_addr_to_register_value(char *ipAddress, size_t size)
             if (token == NULL)
                 break;
 
-            printf("token: %s \n", token);
+            //printf("token: %s \n", token);
             // Extract first two characters
             strncpy(byte, token, 2);
 
             snprintf(byte, 3, "%2s", token);
 
-            printf("byte: %s \n", byte);
+            //printf("byte: %s \n", byte);
 
             temp_ip[i] = strtol(byte, NULL, 16);
 
             // Extract next two characters
             snprintf(byte, 3, "%2s", token + 2);
-            printf("byte: %s \n", byte);
+            //printf("byte: %s \n", byte);
 
             temp_ip[i + 1] = strtol(byte, NULL, 16);
         }
     }
     else
     {
-        printf("big fat else\n");
+        //printf("big fat else\n");
         return -1;
     }
     temp_data = 0x00000000;
@@ -3483,13 +3482,13 @@ int ptp_ipv4_addr_to_register_value(char *ipAddress, size_t size)
 
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_ConfigIpReg, &temp_data))
     {
-        printf("failed to write config \n");
+        //printf("failed to write config \n");
         return -1;
     }
     temp_data = 0x00000008; // write
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_ConfigControlReg, &temp_data))
     {
-        printf("failed to write control \n");
+        //printf("failed to write control \n");
         return -1;
     }
     return 0;
@@ -3628,7 +3627,7 @@ int writePtpOcDefaultDsClockIdValue(char *clockid, size_t size)
     }
     temp_addr = PTP_OC.address_range_low;
     // int j = 0;
-    long temp_clockid = 0;
+    int64_t temp_clockid = 0;
 
     // removes :
     for (int i = 0, j = 0; i < size; i++)
@@ -4049,12 +4048,12 @@ int writePtpOcPortDsDelayReceiptTimeoutValue(char *timeout, size_t size)
         return -2; // read current settings fails
     }
 
-    printf("read temp_data: 0x%08lx\n", temp_data);
+    //printf("read temp_data: 0x%08lx\n", temp_data);
 
     temp_data &= ~(0x000000FF << 16);  // mask bytes
     temp_data |= (temp_timeout << 16); // set bytes
 
-    printf("write temp_data: 0x%08lx\n", temp_data);
+    //printf("write temp_data: 0x%08lx\n", temp_data);
 
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_PortDs4Reg, &temp_data))
     {
@@ -4083,12 +4082,12 @@ int writePtpOcPortDsDelayReqLogMsgIntervalValue(char *interval, size_t size)
         return -2; // read current settings fails
     }
 
-    printf("read temp_data: 0x%08lx\n", temp_data);
+    //printf("read temp_data: 0x%08lx\n", temp_data);
 
     temp_data &= ~(0x000000FF << 8);   // mask bytes
     temp_data |= (temp_interval << 8); // set bytes
 
-    printf("write temp_data: 0x%08lx\n", temp_data);
+    //printf("write temp_data: 0x%08lx\n", temp_data);
 
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_PortDs4Reg, &temp_data))
     {
@@ -4127,12 +4126,12 @@ int writePtpOcPortDsPDelayReqLogMsgIntervalValue(char *interval, size_t size)
         return -2; // read current settings fails
     }
 
-    printf("read temp_data: 0x%08lx\n", temp_data);
+    //printf("read temp_data: 0x%08lx\n", temp_data);
 
     temp_data &= ~(0x000000FF << 0);   // mask bytes
     temp_data |= (temp_interval << 0); // set bytes
 
-    printf("write temp_data: 0x%08lx\n", temp_data);
+    //printf("write temp_data: 0x%08lx\n", temp_data);
 
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_PortDs4Reg, &temp_data))
     {
@@ -4218,12 +4217,12 @@ int writePtpOcPortDsAnnounceLogMsgIntervalValue(char *interval, size_t size)
         return -2; // read current settings fails
     }
 
-    printf("read temp_data: 0x%08lx\n", temp_data);
+    //printf("read temp_data: 0x%08lx\n", temp_data);
 
     temp_data &= ~(0x000000FF << 0);   // mask bytes
     temp_data |= (temp_interval << 0); // set bytes
 
-    printf("write temp_data: 0x%08lx\n", temp_data);
+    //printf("write temp_data: 0x%08lx\n", temp_data);
 
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_PortDs5Reg, &temp_data))
     {
@@ -4262,12 +4261,12 @@ int writePtpOcPortDsSyncReceiptTimeoutValue(char *timeout, size_t size)
         return -2; // read current settings fails
     }
 
-    printf("read temp_data: 0x%08lx\n", temp_data);
+    //printf("read temp_data: 0x%08lx\n", temp_data);
 
     temp_data &= ~(0x000000FF << 8);  // mask bytes
     temp_data |= (temp_timeout << 8); // set bytes
 
-    printf("write temp_data: 0x%08lx\n", temp_data);
+    //printf("write temp_data: 0x%08lx\n", temp_data);
 
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_PortDs6Reg, &temp_data))
     {
@@ -4306,12 +4305,12 @@ int writePtpOcPortDsSyncLogMsgIntervalValue(char *interval, size_t size)
         return -2; // read current settings fails
     }
 
-    printf("read temp_data: 0x%08lx\n", temp_data);
+    //printf("read temp_data: 0x%08lx\n", temp_data);
 
     temp_data &= ~(0x000000FF << 0);   // mask bytes
     temp_data |= (temp_interval << 0); // set bytes
 
-    printf("write temp_data: 0x%08lx\n", temp_data);
+    //printf("write temp_data: 0x%08lx\n", temp_data);
 
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_PortDs6Reg, &temp_data))
     {
@@ -4340,14 +4339,14 @@ int writePtpOcPortDsAsymmetryValue(char *asymmetry, size_t size)
         return -2; // read current settings fails
     }
 
-    printf("read temp_data: 0x%08lx\n", temp_data);
+    //printf("read temp_data: 0x%08lx\n", temp_data);
 
     // temp_data &= ~(0x000000FF << 0);   // mask bytes
     // temp_data |= (temp_asymmetry << 0); // set bytes
 
     temp_data = temp_asymmetry;
 
-    printf("write temp_data: 0x%08lx\n", temp_data);
+    //printf("write temp_data: 0x%08lx\n", temp_data);
 
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_PortDs7Reg, &temp_data))
     {
@@ -4376,14 +4375,14 @@ int writePtpOcPortDsMaxPeerDelayValue(char *delay, size_t size)
         return -2; // read current settings fails
     }
 
-    printf("read temp_data: 0x%08lx\n", temp_data);
+    //printf("read temp_data: 0x%08lx\n", temp_data);
 
     // temp_data &= ~(0x000000FF << 0);   // mask bytes
     // temp_data |= (temp_asymmetry << 0); // set bytes
 
     temp_data = temp_delay;
 
-    printf("write temp_data: 0x%08lx\n", temp_data);
+    //printf("write temp_data: 0x%08lx\n", temp_data);
 
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_PortDs8Reg, &temp_data))
     {
@@ -4739,12 +4738,12 @@ int writePtpOcTimePropertiesDsUtcOffsetValue(char *offset, size_t size)
         return -2; // read current settings fails
     }
 
-    printf("read temp_data: 0x%08lx\n", temp_data);
+    //printf("read temp_data: 0x%08lx\n", temp_data);
     // clear the top of temp_data we just read
     temp_data &= ~0xFFFF0000;
     temp_data |= (temp_offset << 16);
     // temp_data &= 0x000000FF;
-    printf("write temp_data: 0x%08lx\n", temp_data);
+    //printf("write temp_data: 0x%08lx\n", temp_data);
     if (0 != writeRegister(temp_addr + Ucm_PtpOc_TimePropertiesDs1Reg, &temp_data))
     {
         return -3;
@@ -4829,7 +4828,7 @@ int writePtpOcTimePropertiesDsJumpSecondsValue(char *seconds, size_t size)
 
 int writePtpOcTimePropertiesDsNextJumpValue(char *next, size_t size)
 {
-    long temp_next = (strtol(next, NULL, 10));
+    int64_t temp_next = (strtol(next, NULL, 10));
 
     temp_addr = PTP_OC.address_range_low;
     temp_data = 0x00000000;

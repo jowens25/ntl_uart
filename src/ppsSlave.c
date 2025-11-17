@@ -5,17 +5,19 @@
 #include "ntl_uart.h"
 
 PPS_SLAVE_T PPS_SLAVE;
-int readPpsSlaveAll(void)
-{
-    size_t size = 64;
-    readPpsSlaveVersion(PPS_SLAVE.Version, size);
-    readPpsSlaveEnableStatus(PPS_SLAVE.EnableStatus, size);
-    readPpsSlavePolarity(PPS_SLAVE.Polarity, size);
-    readPpsSlaveInputOkStatus(PPS_SLAVE.InputOkStatus, size);
-    readPpsSlavePulseWidthValue(PPS_SLAVE.PulseWidthValue, size);
-    readPpsSlaveCableDelayValue(PPS_SLAVE.CableDelayValue, size);
-    return 0;
-}
+
+NTL_PROPERTY_T ppsProperties[PPS_SLAVE_NUM_PROPS] = {
+
+    [PPS_SLAVE_Version] = {readPpsSlaveVersion, readOnly, PPS_SLAVE.Version},
+    [PPS_SLAVE_EnableStatus] = {readPpsSlaveEnableStatus, writePpsSlaveEnableStatus, PPS_SLAVE.EnableStatus},
+    [PPS_SLAVE_Polarity] = {readPpsSlavePolarity, writePpsSlavePolarity, PPS_SLAVE.Polarity},
+    [PPS_SLAVE_InputOkStatus] = {readPpsSlaveInputOkStatus, readOnly, PPS_SLAVE.InputOkStatus},
+    [PPS_SLAVE_PulseWidthValue] = {readPpsSlavePulseWidthValue, readOnly, PPS_SLAVE.PulseWidthValue},
+    [PPS_SLAVE_CableDelayValue] = {readPpsSlaveCableDelayValue, writePpsSlaveCableDelayValue, PPS_SLAVE.CableDelayValue},
+
+};
+
+
 
 int readPpsSlaveVersion(char *value, size_t size)
 {
@@ -77,7 +79,7 @@ int readPpsSlavePolarity(char *status, size_t size)
         return -1;
     }
 
-    printf("read temp_data in polarity reg: 0x%08lx\n", temp_data);
+    // printf("read temp_data in polarity reg: 0x%08lx\n", temp_data);
 
     if ((temp_data & 0x00000001) == 0)
     {
@@ -197,14 +199,14 @@ int writePpsSlavePolarity(char *status, size_t size)
     temp_addr = PPS_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
-    printf("status: %s\n", status);
+    // printf("status: %s\n", status);
 
-    if (0 == strncmp(status, "enabled", size))
+    if (0 == strncmp(status, "enabled", 7))
     {
         temp_data = 0x00000001 | temp_data;
     }
 
-    else if (0 == strncmp(status, "disabled", size))
+    else if (0 == strncmp(status, "disabled", 8))
     {
         temp_data = 0x00000000 | temp_data; // disable
     }
@@ -213,7 +215,7 @@ int writePpsSlavePolarity(char *status, size_t size)
         return -2;
     }
 
-    printf("temp_data in inverted func: 0x%08lx\n", temp_data);
+    // printf("temp_data in inverted func: 0x%08lx\n", temp_data);
     if (0 != writeRegister(temp_addr + Ucm_PpsSlave_PolarityReg, &temp_data))
     {
         return -3;
@@ -227,11 +229,11 @@ int writePpsSlaveEnableStatus(char *status, size_t size)
     temp_addr = PPS_SLAVE.address_range_low;
     temp_data = 0x00000000;
 
-    if (0 == strncmp(status, "enabled", size))
+    if (0 == strncmp(status, "enabled", 7))
     {
         temp_data = 0x00000001 | temp_data;
     }
-    else if (0 == strncmp(status, "disabled", size))
+    else if (0 == strncmp(status, "disabled", 8))
     {
         temp_data = 0x00000000 | temp_data; // disable
     }

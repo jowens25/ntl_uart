@@ -3,6 +3,8 @@
 #define CLK_CLOCK_H
 #include <stddef.h>
 #include <stdint.h>
+#include "ntl_uart.h"
+
 #define Ucm_ClkClock_ControlReg 0x00000000
 #define Ucm_ClkClock_StatusReg 0x00000004
 #define Ucm_ClkClock_SelectReg 0x00000008
@@ -25,7 +27,22 @@
 #define Ucm_ClkClock_StatusOffsetFractionsReg 0x00000078
 #define Ucm_ClkClock_StatusDriftFractionsReg 0x0000007C
 
-int readClkClockAll(void);
+#define CLK_CLOCK_Version 0
+#define CLK_CLOCK_Status 1
+#define CLK_CLOCK_Seconds 2
+#define CLK_CLOCK_Nanoseconds 3
+#define CLK_CLOCK_InSync 4
+#define CLK_CLOCK_InHoldover 5
+#define CLK_CLOCK_InSyncThreshold 6
+#define CLK_CLOCK_Source 7
+#define CLK_CLOCK_Drift 8
+#define CLK_CLOCK_DriftInterval 9
+#define CLK_CLOCK_Offset 10
+#define CLK_CLOCK_OffsetInterval 11
+#define CLK_CLOCK_CorrectedOffset 12
+#define CLK_CLOCK_CorrectedDrift 13
+#define CLK_CLOCK_Date 14
+#define CLK_CLOCK_NUM_PROPS 15
 
 int readClkClockVersion(char *version, size_t size);
 int readClkClockStatus(char *status, size_t size);
@@ -37,11 +54,8 @@ int readClkClockInSyncThreshold(char *insyncthreshold, size_t size);
 int readClkClockSource(char *source, size_t size);
 int readClkClockDrift(char *drift, size_t size);
 int readClkClockDriftInterval(char *driftinterval, size_t size);
-//int readClkClockDriftAdj(char *driftadj, size_t size);
 int readClkClockOffset(char *offset, size_t size);
 int readClkClockOffsetInterval(char *offsetinterval, size_t size);
-//int readClkClockOffsetAdj(char *offsetadj, size_t size);
-//int readClkClockPiSetCustomParameters(char *pisetcustomparameters, size_t size);
 int readClkClockCorrectedOffset(char *correctedoffset, size_t size);
 int readClkClockCorrectedDrift(char *correcteddrift, size_t size);
 int readClkClockDate(char *date, size_t size);
@@ -84,5 +98,7 @@ typedef struct
 } CLK_CLOCK_T;
 
 extern CLK_CLOCK_T CLK_CLOCK;
+
+extern NTL_PROPERTY_T clkProperties[CLK_CLOCK_NUM_PROPS];
 
 #endif // CLK_CLOCK

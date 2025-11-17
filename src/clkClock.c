@@ -7,30 +7,25 @@
 
 CLK_CLOCK_T CLK_CLOCK;
 
-int readClkClockAll(void)
-{
-    size_t size = 64;
-    readClkClockVersion(CLK_CLOCK.Version, size);
-    readClkClockStatus(CLK_CLOCK.Status, size);
-    readClkClockSeconds(CLK_CLOCK.Seconds, size);
-    readClkClockNanoseconds(CLK_CLOCK.Nanoseconds, size);
-    readClkClockInSync(CLK_CLOCK.InSync, size);
-    readClkClockInHoldover(CLK_CLOCK.InHoldover, size);
-    readClkClockInSyncThreshold(CLK_CLOCK.InSyncThreshold, size);
-    readClkClockSource(CLK_CLOCK.Source, size);
-    readClkClockDrift(CLK_CLOCK.Drift, size);
-    readClkClockDriftInterval(CLK_CLOCK.DriftInterval, size);
-   // readClkClockDriftAdj(CLK_CLOCK.DriftAdj, size);
-    readClkClockOffset(CLK_CLOCK.Offset, size);
-    readClkClockOffsetInterval(CLK_CLOCK.OffsetInterval, size);
-    //readClkClockOffsetAdj(CLK_CLOCK.OffsetAdj, size);
-    //readClkClockPiSetCustomParameters(CLK_CLOCK.PiSetCustomParameters, size);
-    readClkClockCorrectedOffset(CLK_CLOCK.CorrectedOffset, size);
-    readClkClockCorrectedDrift(CLK_CLOCK.CorrectedDrift, size);
-    readClkClockDate(CLK_CLOCK.Date, size);
+NTL_PROPERTY_T clkProperties[CLK_CLOCK_NUM_PROPS] = {
 
-    return 0;
-}
+    [CLK_CLOCK_Version] = {readClkClockVersion, readOnly, CLK_CLOCK.Version},
+    [CLK_CLOCK_Status] = {readClkClockStatus, readOnly, CLK_CLOCK.Status},
+    [CLK_CLOCK_Seconds] = {readClkClockSeconds, writeClkClockSeconds, CLK_CLOCK.Seconds},
+    [CLK_CLOCK_Nanoseconds] = {readClkClockNanoseconds, writeClkClockNanoseconds, CLK_CLOCK.Nanoseconds},
+    [CLK_CLOCK_InSync] = {readClkClockInSync, readOnly, CLK_CLOCK.InSync},
+    [CLK_CLOCK_InHoldover] = {readClkClockInHoldover, readOnly, CLK_CLOCK.InHoldover},
+    [CLK_CLOCK_InSyncThreshold] = {readClkClockInSyncThreshold, writeClkClockInSyncThreshold, CLK_CLOCK.InSyncThreshold},
+    [CLK_CLOCK_Source] = {readClkClockSource, readOnly, CLK_CLOCK.Source},
+    [CLK_CLOCK_Drift] = {readClkClockDrift, writeClkClockDrift, CLK_CLOCK.Drift},
+    [CLK_CLOCK_DriftInterval] = {readClkClockDriftInterval, writeClkClockDriftInterval, CLK_CLOCK.DriftInterval},
+    [CLK_CLOCK_Offset] = {readClkClockOffset, writeClkClockOffset, CLK_CLOCK.Offset},
+    [CLK_CLOCK_OffsetInterval] = {readClkClockOffsetInterval, writeClkClockOffsetInterval, CLK_CLOCK.OffsetInterval},
+    [CLK_CLOCK_CorrectedOffset] = {readClkClockCorrectedOffset, readOnly, CLK_CLOCK.CorrectedOffset},
+    [CLK_CLOCK_CorrectedDrift] = {readClkClockCorrectedDrift, readOnly, CLK_CLOCK.CorrectedDrift},
+    [CLK_CLOCK_Date] = {readClkClockDate, readOnly, CLK_CLOCK.Date},
+
+};
 
 int readClkClockVersion(char *value, size_t size)
 {
@@ -44,7 +39,7 @@ int readClkClockVersion(char *value, size_t size)
 
         return -1;
     }
-    snprintf(value, size, "0x%08lx", temp_data);
+    snprintf(value, size, "0x%llx", temp_data);
 
     return 0;
 }
@@ -78,14 +73,18 @@ int readClkClockSeconds(char *seconds, size_t size)
 {
 
     temp_addr = CLK_CLOCK.address_range_low;
-    temp_data = 0x40000000;
 
     char status[size];
     readClkClockStatus(status, size);
-    if (0 == strncmp(status, "enabled", size))
+
+    temp_data = 0x40000000;
+
+    if (0 == strncmp(status, "enabled", 7))
     {
         temp_data |= 0x00000001;
     }
+
+
 
     if (0 != writeRegister(temp_addr + Ucm_ClkClock_ControlReg, &temp_data))
     {
@@ -113,7 +112,7 @@ int readClkClockSeconds(char *seconds, size_t size)
                 return -1;
             }
 
-            snprintf(seconds, size, "%ld", temp_data);
+            snprintf(seconds, size, "%lld", temp_data);
 
             break;
         }
@@ -160,7 +159,7 @@ int readClkClockNanoseconds(char *nanoseconds, size_t size)
                 return -1;
             }
 
-            snprintf(nanoseconds, size, "%ld", temp_data);
+            snprintf(nanoseconds, size, "%lld", temp_data);
 
             break;
         }
@@ -224,7 +223,7 @@ int readClkClockInSyncThreshold(char *insyncthreshold, size_t size)
         return -1;
     }
 
-    snprintf(insyncthreshold, size, "%ld", temp_data);
+    snprintf(insyncthreshold, size, "%lld", temp_data);
 
     return 0;
 }
@@ -352,8 +351,6 @@ int readClkClockOffsetInterval(char *offsetinterval, size_t size)
     return 0;
 }
 
-
-
 int readClkClockCorrectedOffset(char *correctedoffset, size_t size)
 {
     temp_addr = CLK_CLOCK.address_range_low;
@@ -453,8 +450,6 @@ int readClkClockDate(char *date, size_t size)
 
     return 0;
 }
-
-
 
 int writeClkClockSource(char *source, size_t size)
 {

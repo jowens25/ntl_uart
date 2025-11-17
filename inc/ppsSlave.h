@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "ntl_uart.h"
 
 #define Ucm_PpsSlave_ControlReg 0x00000000
 #define Ucm_PpsSlave_StatusReg 0x00000004
@@ -11,6 +12,28 @@
 #define Ucm_PpsSlave_VersionReg 0x0000000C
 #define Ucm_PpsSlave_PulseWidthReg 0x00000010
 #define Ucm_PpsSlave_CableDelayReg 0x00000020
+
+#define PPS_SLAVE_Version 0
+#define PPS_SLAVE_EnableStatus 1
+#define PPS_SLAVE_Polarity 2
+#define PPS_SLAVE_InputOkStatus 3
+#define PPS_SLAVE_PulseWidthValue 4
+#define PPS_SLAVE_CableDelayValue 5
+#define PPS_SLAVE_NUM_PROPS 6
+
+int readPpsSlaveVersion(char *value, size_t size);
+int readPpsSlaveEnableStatus(char *status, size_t size);
+int readPpsSlavePolarity(char *status, size_t size);
+int readPpsSlaveInputOkStatus(char *status, size_t size);
+int readPpsSlavePulseWidthValue(char *value, size_t size);
+int readPpsSlaveCableDelayValue(char *value, size_t size);
+int writePpsSlaveCableDelayValue(char *cable_delay, size_t size);
+int writePpsSlavePolarity(char *status, size_t size);
+int writePpsSlaveEnableStatus(char *status, size_t size);
+
+int readPpsSlaveAll(void);
+
+int readWritePpsProperty(int prop, char *value);
 
 typedef struct
 {
@@ -30,18 +53,6 @@ typedef struct
 } PPS_SLAVE_T;
 
 extern PPS_SLAVE_T PPS_SLAVE;
-
-int readPpsSlaveVersion(char *value, size_t size);
-int readPpsSlaveEnableStatus(char *status, size_t size);
-int readPpsSlavePolarity(char *status, size_t size);
-int readPpsSlaveInputOkStatus(char *status, size_t size);
-int readPpsSlavePulseWidthValue(char *value, size_t size);
-int readPpsSlaveCableDelayValue(char *value, size_t size);
-int writePpsSlaveCableDelayValue(char *cable_delay, size_t size);
-int writePpsSlaveCableDelayValue(char *cable_delay, size_t size);
-int writePpsSlavePolarity(char *status, size_t size);
-int writePpsSlaveEnableStatus(char *status, size_t size);
-
-int readPpsSlaveAll(void);
+extern NTL_PROPERTY_T ppsProperties[PPS_SLAVE_NUM_PROPS];
 
 #endif

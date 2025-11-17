@@ -11,6 +11,13 @@
 #include <string.h>
 #include <stdio.h>
 
+typedef struct
+{
+    int (*read)(char *, size_t);
+    int (*write)(char *, size_t);
+    char *value;
+} NTL_PROPERTY_T;
+
 #include "cores.h"
 #include "clkClock.h"
 #include "confSlave.h"
@@ -50,6 +57,8 @@ unsigned char calculateChecksum(char *data);
 int readOnly(char *ro, size_t size);
 
 int ntlConnect(void);
+
+int readWriteProperty(int core_type, NTL_PROPERTY_T *properties, int p, char *newValue);
 
 #ifndef __linux__
 #include <headers.h>

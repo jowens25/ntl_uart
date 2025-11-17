@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "ntl_uart.h"
 
 #define Ucm_NtpServer_ControlReg 0x00000000
 #define Ucm_NtpServer_StatusReg 0x00000004
@@ -52,8 +53,7 @@
 #define NTP_SERVER_RequestsDroppedValue 23
 #define NTP_SERVER_BroadcastsValue 24
 #define NTP_SERVER_ClearCountersStatus 25
-
-int readNtpServerAll(void);
+#define NTP_SERVER_NUM_PROPS 26
 
 int readNtpServerStatus(char *status, size_t size);              // Ntp Server Status
 int readNtpServerIpMode(char *ipMode, size_t size);              // Ntp Server IpMode
@@ -112,16 +112,16 @@ int ipAddressToByteArray(char *ipAddress, long *addressByteArray, size_t size);
 int to4(char *ipv6, size_t size);
 int to16(char *ipv4, size_t size);
 
-int readWriteNtpProperty( int prop, char *value);
+int readWriteNtpProperty(int prop, char *value);
 
 typedef struct
 {
 
-    int32_t core_type;
-    int32_t core_instance_nr;
-    int32_t address_range_low;
-    int32_t address_range_high;
-    int32_t interrupt_mask;
+    int64_t core_type;
+    int64_t core_instance_nr;
+    int64_t address_range_low;
+    int64_t address_range_high;
+    int64_t interrupt_mask;
 
     char Version[32];
     char Status[32];
@@ -153,5 +153,7 @@ typedef struct
 } NTP_SERVER_T;
 
 extern NTP_SERVER_T NTP_SERVER;
+
+extern NTL_PROPERTY_T ntpProperties[NTP_SERVER_NUM_PROPS];
 
 #endif

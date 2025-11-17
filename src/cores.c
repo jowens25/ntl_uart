@@ -126,11 +126,11 @@ int getCores(void)
                {
                case Ucm_CoreConfig_TodSlaveCoreType:
 
-                   TOD.core_type = tempCore.core_type;
-                   TOD.core_instance_nr = tempCore.core_instance_nr;
-                   TOD.address_range_low = tempCore.address_range_low;
-                   TOD.address_range_high = tempCore.address_range_high;
-                   TOD.interrupt_mask = tempCore.interrupt_mask;
+                   TOD_SLAVE.core_type = tempCore.core_type;
+                   TOD_SLAVE.core_instance_nr = tempCore.core_instance_nr;
+                   TOD_SLAVE.address_range_low = tempCore.address_range_low;
+                   TOD_SLAVE.address_range_high = tempCore.address_range_high;
+                   TOD_SLAVE.interrupt_mask = tempCore.interrupt_mask;
                    break;
 
                case Ucm_CoreConfig_PtpOrdinaryClockCoreType:
@@ -186,15 +186,15 @@ int getCores(void)
 
 int getCoresProperties(void) {
 
-		    readTodSlaveAll();
+		    //readTodSlaveAll();
 
-		    readPtpOcAll();
+		    //readPtpOcAll();
 
-		    readPpsSlaveAll();
+		    //readPpsSlaveAll();
 
-		    readNtpServerAll();
+		    //readNtpServerAll();
 
-		    readClkClockAll();
+		    //readClkClockAll();
 
 		    return 0;
 }

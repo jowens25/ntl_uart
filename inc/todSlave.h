@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "ntl_uart.h"
 
 #define Ucm_TodSlave_ControlReg 0x00000000
 #define Ucm_TodSlave_StatusReg 0x00000004
@@ -16,9 +17,36 @@
 #define Ucm_TodSlave_GnssStatus_Reg_Con 0x00000040
 #define Ucm_TodSlave_SatelliteNumber_Reg_Con 0x00000044
 
-int readTodSlaveAll(void);
+#define TOD_SLAVE_Version 0
+#define TOD_SLAVE_Protocol 1
+#define TOD_SLAVE_Gnss 2
+#define TOD_SLAVE_MsgDisable 3
+#define TOD_SLAVE_Correction 4
+#define TOD_SLAVE_BaudRate 5
+#define TOD_SLAVE_InvertedPolarity 6
+#define TOD_SLAVE_UtcOffset 7
+#define TOD_SLAVE_UtcInfoValid 8
+#define TOD_SLAVE_LeapAnnounce 9
+#define TOD_SLAVE_Leap59 10
+#define TOD_SLAVE_Leap61 11
+#define TOD_SLAVE_LeapInfoValid 12
+#define TOD_SLAVE_TimeToLeap 13
+#define TOD_SLAVE_GnssFix 14
+#define TOD_SLAVE_GnssFixOk 15
+#define TOD_SLAVE_SpoofingState 16
+#define TOD_SLAVE_FixAndSpoofingInfoValid 17
+#define TOD_SLAVE_JammingLevel 18
+#define TOD_SLAVE_JammingState 19
+#define TOD_SLAVE_AntennaState 20
+#define TOD_SLAVE_AntennaAndJammingInfoValid 21
+#define TOD_SLAVE_NrOfSatellitesSeen 22
+#define TOD_SLAVE_NrOfSatellitesLocked 23
+#define TOD_SLAVE_NrOfSatellitesInfo 24
+#define TOD_SLAVE_Enable 25
+#define TOD_SLAVE_InputOk 26
+#define TOD_SLAVE_NUM_PROPS 27
+
 int readTodSlaveVersion(char *version, size_t size);
-int readTodSlaveInstance(char *instance, size_t size);
 int readTodSlaveProtocol(char *protocol, size_t size);
 int readTodSlaveGnss(char *gnss, size_t size);
 int readTodSlaveMsgDisable(char *msgdisable, size_t size);
@@ -54,9 +82,6 @@ int writeTodSlaveBaudRate(char *baudrate, size_t size);
 int writeTodSlaveInvertedPolarity(char *inverted, size_t size);
 
 int writeTodSlaveEnable(char *enable, size_t size);
-
-
-
 
 typedef struct
 {
@@ -95,9 +120,10 @@ typedef struct
     char Enable[32];
     char InputOk[32];
 
-
 } TOD_SLAVE_T;
 
-extern TOD_SLAVE_T TOD;
+extern TOD_SLAVE_T TOD_SLAVE;
+
+extern NTL_PROPERTY_T todProperties[TOD_SLAVE_NUM_PROPS];
 
 #endif // TOD_SLAVE_H

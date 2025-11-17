@@ -55,7 +55,7 @@ extern int core_count;
 
 typedef struct
 {
-	int64_t core_type;
+    int64_t core_type;
     int64_t core_instance_nr;
     int64_t address_range_low;
     int64_t address_range_high;
