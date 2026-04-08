@@ -1,933 +1,636 @@
-
-#include "ntpServer.h"
-
-#include "cores.h"
 #include "ntl_uart.h"
+#include "cores.h"
+// #include "uartCircBuff.h"
+#include "stdlib.h"
+#include "string.h"
+#include "stdbool.h"
 
-NTP_SERVER_T NTP_SERVER;
+#ifdef NTL_TIME_SERVER
 
-NTL_PROPERTY_T ntpProperties[NTP_SERVER_NUM_PROPS] = {
-
-    [NTP_SERVER_Version] = {readNtpServerVersion, readOnly, NTP_SERVER.Version},
-    [NTP_SERVER_Status] = {readNtpServerStatus, writeNtpServerStatus, NTP_SERVER.Status},
-    [NTP_SERVER_IpMode] = {readNtpServerIpMode, writeNtpServerIpMode, NTP_SERVER.IpMode},
-    [NTP_SERVER_IpAddress] = {readNtpServerIpAddress, writeNtpServerIpAddress, NTP_SERVER.IpAddress},
-    [NTP_SERVER_MacAddress] = {readNtpServerMacAddress, writeNtpServerMacAddress, NTP_SERVER.MacAddress},
-    [NTP_SERVER_VlanStatus] = {readNtpServerVlanStatus, writeNtpServerVlanStatus, NTP_SERVER.VlanStatus},
-    [NTP_SERVER_VlanAddress] = {readNtpServerVlanAddress, writeNtpServerVlanAddress, NTP_SERVER.VlanAddress},
-    [NTP_SERVER_UnicastMode] = {readNtpServerUnicastMode, writeNtpServerUnicastMode, NTP_SERVER.UnicastMode},
-    [NTP_SERVER_MulticastMode] = {readNtpServerMulticastMode, writeNtpServerMulticastMode, NTP_SERVER.MulticastMode},
-    [NTP_SERVER_BroadcastMode] = {readNtpServerBroadcastMode, writeNtpServerBroadcastMode, NTP_SERVER.BroadcastMode},
-    [NTP_SERVER_PrecisionValue] = {readNtpServerPrecisionValue, writeNtpServerPrecisionValue, NTP_SERVER.PrecisionValue},
-    [NTP_SERVER_PollIntervalValue] = {readNtpServerPollIntervalValue, writeNtpServerPollIntervalValue, NTP_SERVER.PollIntervalValue},
-    [NTP_SERVER_StratumValue] = {readNtpServerStratumValue, writeNtpServerStratumValue, NTP_SERVER.StratumValue},
-    [NTP_SERVER_ReferenceId] = {readNtpServerReferenceId, readOnly, NTP_SERVER.ReferenceId},
-    [NTP_SERVER_SmearingStatus] = {readNtpServerSmearingStatus, readOnly, NTP_SERVER.SmearingStatus},
-    [NTP_SERVER_Leap61InProgress] = {readNtpServerLeap61InProgress, readOnly, NTP_SERVER.Leap61InProgress},
-    [NTP_SERVER_Leap59InProgress] = {readNtpServerLeap59InProgress, readOnly, NTP_SERVER.Leap59InProgress},
-    [NTP_SERVER_Leap61Status] = {readNtpServerLeap61Status, writeNtpServerLeap61Status, NTP_SERVER.Leap61Status},
-    [NTP_SERVER_Leap59Status] = {readNtpServerLeap59Status, writeNtpServerLeap59Status, NTP_SERVER.Leap59Status},
-    [NTP_SERVER_UtcOffsetStatus] = {readNtpServerUtcOffsetStatus, writeNtpServerUtcOffsetStatus, NTP_SERVER.UtcOffsetStatus},
-    [NTP_SERVER_UtcOffsetValue] = {readNtpServerUtcOffsetValue, writeNtpServerUtcOffsetValue, NTP_SERVER.UtcOffsetValue},
-    [NTP_SERVER_RequestsValue] = {readNtpServerRequestsValue, readOnly, NTP_SERVER.RequestsValue},
-    [NTP_SERVER_ResponsesValue] = {readNtpServerResponsesValue, readOnly, NTP_SERVER.ResponsesValue},
-    [NTP_SERVER_RequestsDroppedValue] = {readNtpServerRequestsDroppedValue, readOnly, NTP_SERVER.RequestsDroppedValue},
-    [NTP_SERVER_BroadcastsValue] = {readNtpServerBroadcastsValue, readOnly, NTP_SERVER.BroadcastsValue},
-    [NTP_SERVER_ClearCountersStatus] = {readNtpServerClearCountersStatus, writeNtpServerClearCountersStatus, NTP_SERVER.ClearCountersStatus},
-
-};
-
-
-
-// read Ntp Server Status ======================================================
-int readNtpServerStatus(char *status, size_t size)
+uint8_t ntp_server_read_values(NTL_TS_T *ntlts)
 {
-    temp_addr = NTP_SERVER.address_range_low;
+
+    uint32_t temp_data = 0;
+    uint32_t temp_addr = 0;
+    uint64_t temp_ip;
+    uint8_t temp_string[STRING_SIZE] = {0};
+    uint8_t temp_ip6[16];
+    // char *temp_string;
+
+    // temp_addr = ntlts->ntpServer.address_start;
+    temp_addr = ntlts->ntpRegs.StartAddr;
+    // temp_addr = 0xB0020000;
 
     // enabled
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ControlReg, &temp_data))
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_ControlReg, &temp_data))
     {
-        snprintf(status, size, "%s", "err");
+        ntlts->ntpRegs.ControlReg = temp_data;
 
-        return -1;
+        if ((temp_data & 0x00000001) == 0)
+        {
+            ntlts->ntpServer.Enable = 0;
+            // rintf("ntp enable: 0\n");
+        }
+        else
+        {
+            ntlts->ntpServer.Enable = 1;
+            // printf("ntp enable: 1\n");
+        }
     }
-
-    if ((temp_data & 0x00000001) == 0)
-    {
-        snprintf(status, size, "%s", "disabled");
-        ////ui->NtpServerEnableCheckBox->setChecked(false);
-    }
-
     else
     {
-        snprintf(status, size, "%s", "enabled");
-        // ui->NtpServerEnableCheckBox->setChecked(true);
+        ntlts->ntpServer.Enable = 0;
+        // printf("ntp enable: 0\n");
     }
 
-    return 0;
-}
-// read ntp server mac address ======================================================
-int readNtpServerMacAddress(char *macAddr, size_t size)
-{
-    temp_data = 0x00000000;
-    temp_addr = NTP_SERVER.address_range_low;
-    unsigned char temp_mac[6];
     // mac
-    // temp_string.clear();
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigMac1Reg, &temp_data))
+    uint8_t temp_mac[6];
+    if (0 != read_reg(temp_addr + Ucm_NtpServer_ConfigMac1Reg, &temp_data))
     {
-        snprintf(macAddr, size, "%s", "NA");
+        snprintf(ntlts->ntpServer.MacAddr, sizeof(ntlts->ntpServer.MacAddr), "%s", "NA");
 
         return -1;
     }
+
+    ntlts->ntpRegs.ConfigMac1Reg = temp_data;
 
     temp_mac[0] = ((temp_data >> 0) & 0x000000FF);
     temp_mac[1] = ((temp_data >> 8) & 0x000000FF);
     temp_mac[2] = ((temp_data >> 16) & 0x000000FF);
     temp_mac[3] = ((temp_data >> 24) & 0x000000FF);
 
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigMac2Reg, &temp_data))
+    if (0 != read_reg(temp_addr + Ucm_NtpServer_ConfigMac2Reg, &temp_data))
     {
-        snprintf(macAddr, size, "%s", "NA");
+        snprintf(ntlts->ntpServer.MacAddr, sizeof(ntlts->ntpServer.MacAddr), "%s", "NA");
 
         return -1;
     }
+
+    ntlts->ntpRegs.ConfigMac2Reg = temp_data;
 
     temp_mac[4] = ((temp_data >> 0) & 0x000000FF);
     temp_mac[5] = ((temp_data >> 8) & 0x000000FF);
 
-    snprintf(macAddr, size, "%02x:%02x:%02x:%02x:%02x:%02x", temp_mac[0], temp_mac[1], temp_mac[2], temp_mac[3], temp_mac[4], temp_mac[5]);
+    snprintf(ntlts->ntpServer.MacAddr, sizeof(ntlts->ntpServer.MacAddr), "%02x:%02x:%02x:%02x:%02x:%02x", temp_mac[0], temp_mac[1], temp_mac[2], temp_mac[3], temp_mac[4], temp_mac[5]);
 
-    // ui->NtpServerMacValue->setText(temp_string);
-
-    return 0;
-}
-
-// vlan status
-int readNtpServerVlanStatus(char *vlanStatus, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigVlanReg, &temp_data))
+    // vlan
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_ConfigVlanReg, &temp_data))
     {
-        snprintf(vlanStatus, size, "%s", "NA");
-        return -1;
-    }
+        if ((temp_data & 0x00010000) == 0)
+        {
+            ntlts->ntpServer.vlanEnable = 0;
+            // printf("disabled\n");
+        }
+        else
+        {
+            ntlts->ntpServer.vlanEnable = 1;
 
-    if ((temp_data & 0x00010000) == 0)
-    {
-        // ui->NtpServerVlanEnableCheckBox->setChecked(false);
-        snprintf(vlanStatus, size, "%s", "disabled");
+            // printf("enabled\n");
+        }
+
+        temp_data &= 0x0000FFFF;
+
+        // snprintf(ntlts->ntpServer.vlanAddr, sizeof(ntlts->ntpServer.vlanAddr), "0x%04x", temp_data);
+        ntlts->ntpServer.vlanAddr = temp_data;
     }
     else
     {
-        // ui->NtpServerVlanEnableCheckBox->setChecked(true);
-        snprintf(vlanStatus, size, "%s", "enabled");
+        ntlts->ntpServer.vlanEnable = 0;
+        // snprintf(ntlts->ntpServer.vlanAddr, sizeof(ntlts->ntpServer.vlanAddr), "%s", "NA");
+        ntlts->ntpServer.vlanAddr = 0;
     }
 
-    temp_data &= 0x0000FFFF;
-
-    // ui->NtpServerVlanValue->setText(QString("0x%1").arg(temp_data, 4, 16, QLatin1Char('0')));
-    return 0;
-}
-
-// vlan addr
-int readNtpServerVlanAddress(char *vlanAddr, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigVlanReg, &temp_data))
-    {
-        snprintf(vlanAddr, size, "%s", "NA");
-
-        return -1;
-    }
-
-    temp_data &= 0x0000FFFF;
-    snprintf(vlanAddr, size, "0x%04lx", temp_data);
-
-    // ui->NtpServerVlanValue->setText(QString("0x%1").arg(temp_data, 4, 16, QLatin1Char('0')));
-    return 0;
-}
-
-// read Ntp Server IP MODE ======================================================
-int readNtpServerIpMode(char *ipMode, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
     // mode & server config
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
     {
-        snprintf(ipMode, size, "%s", "NA");
-        return -1;
-    }
+        ntlts->ntpRegs.ConfigModeReg = temp_data;
 
-    if (((temp_data >> 0) & 0x00000003) == 1)
-    {
-        snprintf(ipMode, size, "%s", "IPv4");
-    }
-    else if (((temp_data >> 0) & 0x00000003) == 2)
-    {
-        snprintf(ipMode, size, "%s", "IPv6");
+        if (((temp_data >> 0) & 0x00000003) == 1)
+        {
+
+            snprintf(ntlts->ntpServer.ipMode, sizeof(ntlts->ntpServer.ipMode), "%s", "IPv4");
+        }
+        else if (((temp_data >> 0) & 0x00000003) == 2)
+        {
+            snprintf(ntlts->ntpServer.ipMode, sizeof(ntlts->ntpServer.ipMode), "%s", "IPv6");
+        }
+        else
+        {
+            snprintf(ntlts->ntpServer.ipMode, sizeof(ntlts->ntpServer.ipMode), "%s", "NA");
+        }
+
+        if ((temp_data & 0x00000010) == 0)
+        {
+            // ui->NtpServerUnicastModeCheckBox->setChecked(false);
+            ntlts->ntpServer.unicastEnable = 0;
+        }
+        else
+        {
+            // ui->NtpServerUnicastModeCheckBox->setChecked(true);
+            ntlts->ntpServer.unicastEnable = 1;
+        }
+
+        if ((temp_data & 0x00000020) == 0)
+        {
+            // ui->NtpServerMulticastModeCheckBox->setChecked(false);
+            ntlts->ntpServer.multicastEnable = 0;
+        }
+        else
+        {
+            // ui->NtpServerMulticastModeCheckBox->setChecked(true);
+            ntlts->ntpServer.multicastEnable = 1;
+        }
+
+        if ((temp_data & 0x00000040) == 0)
+        {
+            // ui->NtpServerBroadcastModeCheckBox->setChecked(false);
+            ntlts->ntpServer.broadcastEnable = 0;
+        }
+        else
+        {
+            // ui->NtpServerBroadcastModeCheckBox->setChecked(true);
+            ntlts->ntpServer.broadcastEnable = 1;
+        }
+
+        // ui->NtpServerPrecisionValue->setText(QString::number((char)((temp_data >> 8) & 0x000000FF)));
+        // snprintf(ntlts->ntpServer.precision, sizeof(ntlts->ntpServer.precision), "%d", (int8_t)((temp_data >> 8) & 0x000000FF));
+        ntlts->ntpServer.Precision = (int8_t)((temp_data >> 8) & 0x000000FF);
+        // ui->NtpServerPollIntervalValue->setText(QString::number(((temp_data >> 16) & 0x000000FF)));
+        // snprintf(ntlts->ntpServer.PollInterval, sizeof(ntlts->ntpServer.pollInterval), "%d", ((temp_data >> 16) & 0x000000FF));
+        ntlts->ntpServer.PollInterval = ((temp_data >> 16) & 0x000000FF);
+        // ui->NtpServerStratumValue->setText(QString::number(((temp_data >> 24) & 0x000000FF)));
+        // snprintf(ntlts->ntpServer.stratum, sizeof(ntlts->ntpServer.stratum), "%d", ((temp_data >> 24) & 0x000000FF));
+        ntlts->ntpServer.Stratum = ((temp_data >> 24) & 0x000000FF);
     }
     else
     {
-        snprintf(ipMode, size, "%s", "NA");
+        // ui->NtpServerIpModeValue->setCurrentText("NA");
+        // ui->NtpServerUnicastModeCheckBox->setChecked(false);
+        // ui->NtpServerMulticastModeCheckBox->setChecked(false);
+        // ui->NtpServerBroadcastModeCheckBox->setChecked(false);
+        // ui->NtpServerStratumValue->setText("NA");
+        // ui->NtpServerPollIntervalValue->setText("NA");
+        // ui->NtpServerPrecisionValue->setText("NA");
+
+        snprintf(ntlts->ntpServer.ipMode, sizeof(ntlts->ntpServer.ipMode), "%s", "NA");
+        ntlts->ntpServer.unicastEnable = 0;
+        ntlts->ntpServer.multicastEnable = 0;
+        ntlts->ntpServer.broadcastEnable = 0;
+        ntlts->ntpServer.Precision = 0;
+        ntlts->ntpServer.PollInterval = -1;
+        ntlts->ntpServer.Stratum = -1;
+        // snprintf(ntlts->ntpServer.stratum, sizeof(ntlts->ntpServer.stratum), "%s", "NA");
+        // snprintf(ntlts->ntpServer.pollInterval, sizeof(ntlts->ntpServer.pollInterval), "%s", "NA");
+        // snprintf(ntlts->ntpServer.precision, sizeof(ntlts->ntpServer.precision), "%s", "NA");
     }
 
-    return 0;
-}
-
-// read Ntp Server Unicast mode ======================================================
-int readNtpServerUnicastMode(char *mode, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        snprintf(mode, size, "%s", "NA");
-        return -1;
-    }
-
-    if (((temp_data) & 0x00000010) == 0)
-    {
-        snprintf(mode, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(mode, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-
-// read Ntp Server Multicast mode ======================================================
-int readNtpServerMulticastMode(char *mode, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        snprintf(mode, size, "%s", "NA");
-        return -1;
-    }
-
-    if (((temp_data) & 0x00000020) == 0)
-    {
-        snprintf(mode, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(mode, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-
-// read Ntp Server Broadcast mode ======================================================
-int readNtpServerBroadcastMode(char *mode, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        snprintf(mode, size, "%s", "NA");
-        return -1;
-    }
-
-    if (((temp_data) & 0x00000040) == 0)
-    {
-        snprintf(mode, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(mode, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-
-// read Ntp Server Precision mode ======================================================
-int readNtpServerPrecisionValue(char *value, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        snprintf(value, size, "%s", "NA");
-        return -1;
-    }
-    // ui->NtpServerPrecisionValue->setText(QString::number((char)((temp_data >> 8) & 0x000000FF)));
-    snprintf(value, size, "%d", (signed char)((temp_data >> 8) & 0x000000FF));
-    // snprintf(value, size, "%d", (char)((temp_data >> 8) & 0x000000FF));
-
-    return 0;
-}
-// read Ntp Server PollIntervalValue mode ======================================================
-int readNtpServerPollIntervalValue(char *value, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        snprintf(value, size, "%s", "NA");
-        return -1;
-    }
-    // ui->NtpServerPrecisionValue->setText(QString::number((char)((temp_data >> 8) & 0x000000FF)));
-    snprintf(value, size, "%ld", ((temp_data >> 16) & 0x000000FF));
-
-    return 0;
-}
-
-// read Ntp Server Stratum value mode ======================================================
-int readNtpServerStratumValue(char *value, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        snprintf(value, size, "%s", "NA");
-        return -1;
-    }
-    // ui->NtpServerPrecisionValue->setText(QString::number((char)((temp_data >> 8) & 0x000000FF)));
-    snprintf(value, size, "%ld", ((temp_data >> 24) & 0x000000FF));
-
-    return 0;
-}
-
-int readNtpServerReferenceId(char *refId, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-
-    char temp_refid[4] = {0};
+    memset(temp_string, 0, sizeof(temp_string));
 
     // reference id
     // temp_string.clear();
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigReferenceIdReg, &temp_data))
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_ConfigReferenceIdReg, &temp_data))
     {
-        snprintf(refId, size, "%s", "NA");
-        return -1;
+
+        ntlts->ntpRegs.ConfigReferenceIdReg = temp_data;
+        // temp_string.append((QChar)((temp_data >> 24) & 0x000000FF));
+        // temp_string.append((QChar)((temp_data >> 16) & 0x000000FF));
+        // temp_string.append((QChar)((temp_data >> 8) & 0x000000FF));
+        // temp_string.append((QChar)((temp_data >> 0) & 0x000000FF));
+
+        temp_string[0] = ((temp_data >> 24) & 0x000000FF);
+        temp_string[1] = ((temp_data >> 16) & 0x000000FF);
+        temp_string[2] = ((temp_data >> 8) & 0x000000FF);
+        temp_string[3] = ((temp_data >> 0) & 0x000000FF);
+
+        // ui->NtpServerReferenceIdValue->setText(temp_string); // TODO
+
+        snprintf(ntlts->ntpServer.referenceId, sizeof(ntlts->ntpServer.referenceId), "%.7s", temp_string);
     }
-    // temp_string.append(temp_refid[0] = (QChar)((temp_data >> 24) & 0x000000FF));
-    // temp_string.append(temp_refid[0] = (QChar)((temp_data >> 16) & 0x000000FF));
-    // temp_string.append(temp_refid[0] = (QChar)((temp_data >> 8) & 0x000000FF));
-    // temp_string.append(temp_refid[0] = (QChar)((temp_data >> 0) & 0x000000FF));
-    //
-    temp_refid[0] = (char)((temp_data >> 24) & 0x000000FF);
-    temp_refid[1] = (char)((temp_data >> 16) & 0x000000FF);
-    temp_refid[2] = (char)((temp_data >> 8) & 0x000000FF);
-    temp_refid[3] = (char)((temp_data >> 0) & 0x000000FF);
-
-    if (isspace(temp_refid[3])) // all of the
+    else
     {
-        snprintf(refId, size, "%c%c%c", temp_refid[0], temp_refid[1], temp_refid[2]);
-        return 0;
-    }
-    snprintf(refId, size, "%c%c%c%c", temp_refid[0], temp_refid[1], temp_refid[2], temp_refid[3]);
-
-    // snprintf(refId, size, "%c%c%c%c", temp_refid[0], temp_refid[1], temp_refid[2], temp_refid[3]);
-
-    // ui->NtpServerReferenceIdValue->setText(temp_string); // TODO
-
-    return 0;
-}
-
-// read NtpServer IP ADDRESS ======================================================
-int readNtpServerIpAddress(char *ipAddr, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    int64_t temp_ip = 0;
-    char ipMode[size];
-
-    int err = readNtpServerIpMode(ipMode, size);
-
-    if (err != 0)
-    {
-        snprintf(ipAddr, size, "%s", "mode err");
-        return -1;
+        // ui->NtpServerReferenceIdValue->setText("NA");
+        // ntlts->ntpServer.referenceId
+        snprintf(ntlts->ntpServer.referenceId, sizeof(ntlts->ntpServer.referenceId), "%s", "NA");
     }
 
-    if (0 == strncmp(ipMode, "IPv4", 4))
+    // ip
+    // temp_string = ui->NtpServerIpModeValue->currentText();
+    if (strncmp(ntlts->ntpServer.ipMode, "IPv4", strlen("IPv4")) == 0)
     {
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
-        {
-            snprintf(ipAddr, size, "%s", "err");
-            return -1;
-        }
-        temp_ip = 0x00000000;
-        temp_ip |= (temp_data >> 0) & 0x000000FF;
-        temp_ip = temp_ip << 8;
-        temp_ip |= (temp_data >> 8) & 0x000000FF;
-        temp_ip = temp_ip << 8;
-        temp_ip |= (temp_data >> 16) & 0x000000FF;
-        temp_ip = temp_ip << 8;
-        temp_ip |= (temp_data >> 24) & 0x000000FF;
-
-        unsigned char ip_bytes[4];
-        ip_bytes[0] = temp_ip & 0xFF;
-        ip_bytes[1] = (temp_ip >> 8) & 0xFF;
-        ip_bytes[2] = (temp_ip >> 16) & 0xFF;
-        ip_bytes[3] = (temp_ip >> 24) & 0xFF;
-
-        snprintf(ipAddr, size, "%d.%d.%d.%d", ip_bytes[3], ip_bytes[2], ip_bytes[1], ip_bytes[0]);
-    }
-    else if (0 == strncmp(ipMode, "IPv6", 4))
-    {
-        unsigned char temp_ip6[16];
         // temp_string.clear();
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
-        {
-            snprintf(ipAddr, size, "%s", "err0-3");
-            return -1;
-        }
-        temp_ip6[0] = (temp_data >> 0) & 0x000000FF;
-        temp_ip6[1] = (temp_data >> 8) & 0x000000FF;
-        temp_ip6[2] = (temp_data >> 16) & 0x000000FF;
-        temp_ip6[3] = (temp_data >> 24) & 0x000000FF;
+        memset(temp_string, 0, sizeof(temp_string));
 
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigIpv61Reg, &temp_data))
+        if (0 == read_reg(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
         {
-            snprintf(ipAddr, size, "%s", "err4-7");
-            return -1;
-        }
-        temp_ip6[4] = (temp_data >> 0) & 0x000000FF;
-        temp_ip6[5] = (temp_data >> 8) & 0x000000FF;
-        temp_ip6[6] = (temp_data >> 16) & 0x000000FF;
-        temp_ip6[7] = (temp_data >> 24) & 0x000000FF;
+            ntlts->ntpRegs.ConfigIpReg = temp_data;
 
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigIpv62Reg, &temp_data))
+            temp_ip = 0x00000000;
+            temp_ip |= (temp_data >> 0) & 0x000000FF;
+            temp_ip = temp_ip << 8;
+            temp_ip |= (temp_data >> 8) & 0x000000FF;
+            temp_ip = temp_ip << 8;
+            temp_ip |= (temp_data >> 16) & 0x000000FF;
+            temp_ip = temp_ip << 8;
+            temp_ip |= (temp_data >> 24) & 0x000000FF;
+
+            unsigned char ip_bytes[4];
+            ip_bytes[0] = temp_ip & 0xFF;
+            ip_bytes[1] = (temp_ip >> 8) & 0xFF;
+            ip_bytes[2] = (temp_ip >> 16) & 0xFF;
+            ip_bytes[3] = (temp_ip >> 24) & 0xFF;
+
+            snprintf(ntlts->ntpServer.ipAddr, sizeof(ntlts->ntpServer.ipAddr), "%d.%d.%d.%d", ip_bytes[3], ip_bytes[2], ip_bytes[1], ip_bytes[0]);
+
+            // temp_string = QHostAddress(temp_ip).toString();
+
+            // ui->NtpServerIpValue->setText(temp_string);
+        }
+        else
         {
-            snprintf(ipAddr, size, "%s", "err8-11");
-            return -1;
+            // ui->NtpServerIpValue->setText("NA");
+            snprintf(ntlts->ntpServer.ipAddr, sizeof(ntlts->ntpServer.ipAddr), "%s", "NA");
         }
-        temp_ip6[8] = (temp_data >> 0) & 0x000000FF;
-        temp_ip6[9] = (temp_data >> 8) & 0x000000FF;
-        temp_ip6[10] = (temp_data >> 16) & 0x000000FF;
-        temp_ip6[11] = (temp_data >> 24) & 0x000000FF;
+    }
+    else if (strncmp(ntlts->ntpServer.ipMode, "IPv6", strlen("IPv6")) == 0)
+    {
+        // temp_string.clear();
+        memset(temp_string, 0, sizeof(temp_string));
 
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigIpv63Reg, &temp_data))
+        if (0 == read_reg(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
         {
-            snprintf(ipAddr, size, "%s", "err12-15");
-            return -1;
-        }
-        temp_ip6[12] = (temp_data >> 0) & 0x000000FF;
-        temp_ip6[13] = (temp_data >> 8) & 0x000000FF;
-        temp_ip6[14] = (temp_data >> 16) & 0x000000FF;
-        temp_ip6[15] = (temp_data >> 24) & 0x000000FF;
+            ntlts->ntpRegs.ConfigIpReg = temp_data;
+            temp_ip6[0] = (temp_data >> 0) & 0x000000FF;
+            temp_ip6[1] = (temp_data >> 8) & 0x000000FF;
+            temp_ip6[2] = (temp_data >> 16) & 0x000000FF;
+            temp_ip6[3] = (temp_data >> 24) & 0x000000FF;
 
-        snprintf(ipAddr, size, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
-                 temp_ip6[0],
-                 temp_ip6[1],
-                 temp_ip6[2],
-                 temp_ip6[3],
-                 temp_ip6[4],
-                 temp_ip6[5],
-                 temp_ip6[6],
-                 temp_ip6[7],
-                 temp_ip6[8],
-                 temp_ip6[9],
-                 temp_ip6[10],
-                 temp_ip6[11],
-                 temp_ip6[12],
-                 temp_ip6[13],
-                 temp_ip6[14],
-                 temp_ip6[15]);
+            if (0 == read_reg(temp_addr + Ucm_NtpServer_ConfigIpv61Reg, &temp_data))
+            {
+                ntlts->ntpRegs.ConfigIpv61Reg = temp_data;
+                temp_ip6[4] = (temp_data >> 0) & 0x000000FF;
+                temp_ip6[5] = (temp_data >> 8) & 0x000000FF;
+                temp_ip6[6] = (temp_data >> 16) & 0x000000FF;
+                temp_ip6[7] = (temp_data >> 24) & 0x000000FF;
+
+                if (0 == read_reg(temp_addr + Ucm_NtpServer_ConfigIpv62Reg, &temp_data))
+                {
+                    ntlts->ntpRegs.ConfigIpv62Reg = temp_data;
+
+                    temp_ip6[8] = (temp_data >> 0) & 0x000000FF;
+                    temp_ip6[9] = (temp_data >> 8) & 0x000000FF;
+                    temp_ip6[10] = (temp_data >> 16) & 0x000000FF;
+                    temp_ip6[11] = (temp_data >> 24) & 0x000000FF;
+
+                    if (0 == read_reg(temp_addr + Ucm_NtpServer_ConfigIpv63Reg, &temp_data))
+                    {
+                        ntlts->ntpRegs.ConfigIpv63Reg = temp_data;
+
+                        temp_ip6[12] = (temp_data >> 0) & 0x000000FF;
+                        temp_ip6[13] = (temp_data >> 8) & 0x000000FF;
+                        temp_ip6[14] = (temp_data >> 16) & 0x000000FF;
+                        temp_ip6[15] = (temp_data >> 24) & 0x000000FF;
+
+                        // temp_string = QHostAddress(temp_ip6).toString();
+
+                        snprintf(ntlts->ntpServer.ipAddr, sizeof(ntlts->ntpServer.ipAddr), "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+                                 temp_ip6[0],
+                                 temp_ip6[1],
+                                 temp_ip6[2],
+                                 temp_ip6[3],
+                                 temp_ip6[4],
+                                 temp_ip6[5],
+                                 temp_ip6[6],
+                                 temp_ip6[7],
+                                 temp_ip6[8],
+                                 temp_ip6[9],
+                                 temp_ip6[10],
+                                 temp_ip6[11],
+                                 temp_ip6[12],
+                                 temp_ip6[13],
+                                 temp_ip6[14],
+                                 temp_ip6[15]);
+
+                        // ui->NtpServerIpValue->setText(temp_string);
+                    }
+                    else
+                    {
+                        // ui->NtpServerIpValue->setText("NA");
+                        snprintf(ntlts->ntpServer.ipAddr, sizeof(ntlts->ntpServer.ipAddr), "%s", "NA");
+                    }
+                }
+                else
+                {
+                    // ui->NtpServerIpValue->setText("NA");
+                    snprintf(ntlts->ntpServer.ipAddr, sizeof(ntlts->ntpServer.ipAddr), "%s", "NA");
+                }
+            }
+            else
+            {
+                // ui->NtpServerIpValue->setText("NA");
+                snprintf(ntlts->ntpServer.ipAddr, sizeof(ntlts->ntpServer.ipAddr), "%s", "NA");
+            }
+        }
+        else
+        {
+            // ui->NtpServerIpValue->setText("NA");
+            snprintf(ntlts->ntpServer.ipAddr, sizeof(ntlts->ntpServer.ipAddr), "%s", "NA");
+        }
     }
     else
     {
-        snprintf(ipAddr, size, "%s", "NA");
-        return -1;
+        // ui->NtpServerIpValue->setText("NA");
+        snprintf(ntlts->ntpServer.ipAddr, sizeof(ntlts->ntpServer.ipAddr), "%s", "NA");
     }
 
-    return 0;
-}
-
-int readNtpServerSmearingStatus(char *status, size_t size)
-{
     // utc info
-    temp_addr = NTP_SERVER.address_range_low;
     temp_data = 0x40000000;
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
+    if (0 == write_reg(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
     {
-        snprintf(status, size, "%s", "err");
-        return -1;
-    }
-
-    for (int i = 0; i < 10; i++)
-    {
-        if (i == 9)
+        for (int i = 0; i < 10; i++)
         {
-            snprintf(status, size, "%s", "err: read did not complete");
-            return -1;
-        }
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-        {
-            snprintf(status, size, "%s", "read err");
-            return -1;
-        }
-
-        if ((temp_data & 0x80000000) != 0)
-        {
-            if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
+            if (0 == read_reg(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
             {
-                return -1;
-            }
+                if ((temp_data & 0x80000000) != 0)
+                {
+                    if (0 == read_reg(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
+                    {
 
-            if ((temp_data & 0x00000100) == 0)
-            {
-                snprintf(status, size, "%s", "disabled");
-                // snprintf(status, size, "%lx", temp_data);
+                        ntlts->ntpRegs.UtcInfoReg = temp_data;
+
+                        if ((temp_data & 0x00000100) == 0)
+                        {
+                            // ui->NtpServerUtcSmearingCheckBox->setChecked(false);
+                            ntlts->ntpServer.utcSmearingEnable = 0;
+                        }
+                        else
+                        {
+                            // ui->NtpServerUtcSmearingCheckBox->setChecked(true);
+                            ntlts->ntpServer.utcSmearingEnable = 1;
+                        }
+
+                        if ((temp_data & 0x00000200) == 0)
+                        {
+                            // ui->NtpServerUtcLeap61InProgressCheckBox->setChecked(false);
+                            ntlts->ntpServer.utcLeap61InProgress = 0;
+                        }
+                        else
+                        {
+                            // ui->NtpServerUtcLeap61InProgressCheckBox->setChecked(true);
+                            ntlts->ntpServer.utcLeap61InProgress = 1;
+                        }
+
+                        if ((temp_data & 0x00000400) == 0)
+                        {
+                            // ui->NtpServerUtcLeap59InProgressCheckBox->setChecked(false);
+                            ntlts->ntpServer.utcLeap59InProgress = 0;
+                        }
+                        else
+                        {
+                            // ui->NtpServerUtcLeap59InProgressCheckBox->setChecked(true);
+                            ntlts->ntpServer.utcLeap59InProgress = 1;
+                        }
+
+                        if ((temp_data & 0x00000800) == 0)
+                        {
+                            // ui->NtpServerUtcLeap61CheckBox->setChecked(false);
+                            ntlts->ntpServer.utcLeap61Enable = 0;
+                        }
+                        else
+                        {
+                            // ui->NtpServerUtcLeap61CheckBox->setChecked(true);
+                            ntlts->ntpServer.utcLeap61Enable = 1;
+                        }
+
+                        if ((temp_data & 0x00001000) == 0)
+                        {
+                            /// ui->NtpServerUtcLeap59CheckBox->setChecked(false);
+                            ntlts->ntpServer.utcLeap59Enable = 0;
+                        }
+                        else
+                        {
+                            // ui->NtpServerUtcLeap59CheckBox->setChecked(true);
+                            ntlts->ntpServer.utcLeap59Enable = 1;
+                        }
+
+                        if ((temp_data & 0x00002000) == 0)
+                        {
+                            // ui->NtpServerUtcOffsetValCheckBox->setChecked(false);
+                            ntlts->ntpServer.utcOffsetEnable = 0;
+                        }
+                        else
+                        {
+                            // ui->NtpServerUtcOffsetValCheckBox->setChecked(true);
+                            ntlts->ntpServer.utcOffsetEnable = 1;
+                        }
+
+                        // ui->NtpServerUtcOffsetValue->setText(QString::number(((temp_data >> 16) & 0x0000FFFF)));
+                        // snprintf(ntlts->ntpServer.utcOffset, sizeof(ntlts->ntpServer.utcOffset), "%d", ((temp_data >> 16) & 0x0000FFFF));
+                        ntlts->ntpServer.utcOffset = ((temp_data >> 16) & 0x0000FFFF);
+                    }
+                    else
+                    {
+                        // ui->NtpServerUtcLeap59CheckBox->setChecked(false);
+                        ntlts->ntpServer.utcLeap59Enable = 0;
+                        // ui->NtpServerUtcLeap61CheckBox->setChecked(false);
+                        ntlts->ntpServer.utcLeap61Enable = 0;
+                        // ui->NtpServerUtcLeap59InProgressCheckBox->setChecked(false);
+                        ntlts->ntpServer.utcLeap59InProgress = 0;
+                        // ui->NtpServerUtcLeap61InProgressCheckBox->setChecked(false);
+                        ntlts->ntpServer.utcLeap61InProgress = 0;
+                        // ui->NtpServerUtcOffsetValCheckBox->setChecked(false);
+                        ntlts->ntpServer.utcOffsetEnable = 0;
+                        // ui->NtpServerUtcSmearingCheckBox->setChecked(false);
+                        ntlts->ntpServer.utcSmearingEnable = 0;
+                        // ui->NtpServerUtcOffsetValue->setText("NA");
+                        // ntlts->ntpServer.utcOffset = 0;
+                        // snprintf(ntlts->ntpServer.utcOffset, sizeof(ntlts->ntpServer.utcOffset), "%s", "NA");
+                        ntlts->ntpServer.utcOffset = -1;
+                    }
+                    break;
+                }
+                else if (i == 9)
+                {
+                    // printf("read did not complete\n");
+                    //  ui->NtpServerUtcLeap59CheckBox->setChecked(false);
+                    ntlts->ntpServer.utcLeap59Enable = 0;
+                    // ui->NtpServerUtcLeap61CheckBox->setChecked(false);
+                    ntlts->ntpServer.utcLeap61Enable = 0;
+                    // ui->NtpServerUtcLeap59InProgressCheckBox->setChecked(false);
+                    ntlts->ntpServer.utcLeap59InProgress = 0;
+                    // ui->NtpServerUtcLeap61InProgressCheckBox->setChecked(false);
+                    ntlts->ntpServer.utcLeap61InProgress = 0;
+                    // ui->NtpServerUtcOffsetValCheckBox->setChecked(false);
+                    ntlts->ntpServer.utcOffsetEnable = 0;
+                    // ui->NtpServerUtcSmearingCheckBox->setChecked(false);
+                    ntlts->ntpServer.utcSmearingEnable = 0;
+                    // ui->NtpServerUtcOffsetValue->setText("NA");
+                    // ntlts->ntpServer.utcOffset = 0;
+                    // snprintf(ntlts->ntpServer.utcOffset, sizeof(ntlts->ntpServer.utcOffset), "%s", "NA");
+                    // ntlts->ntpServer.utcOffset = -1;
+                }
             }
             else
             {
-                snprintf(status, size, "%s", "enabled");
+                // ui->NtpServerUtcLeap59CheckBox->setChecked(false);
+                ntlts->ntpServer.utcLeap59Enable = 0;
+                // ui->NtpServerUtcLeap61CheckBox->setChecked(false);
+                ntlts->ntpServer.utcLeap61Enable = 0;
+                // ui->NtpServerUtcLeap59InProgressCheckBox->setChecked(false);
+                ntlts->ntpServer.utcLeap59InProgress = 0;
+                // ui->NtpServerUtcLeap61InProgressCheckBox->setChecked(false);
+                ntlts->ntpServer.utcLeap61InProgress = 0;
+                // ui->NtpServerUtcOffsetValCheckBox->setChecked(false);
+                ntlts->ntpServer.utcOffsetEnable = 0;
+                // ui->NtpServerUtcSmearingCheckBox->setChecked(false);
+                ntlts->ntpServer.utcSmearingEnable = 0;
+                // ui->NtpServerUtcOffsetValue->setText("NA");
+                // ntlts->ntpServer.utcOffset = 0;
+                // snprintf(ntlts->ntpServer.utcOffset, sizeof(ntlts->ntpServer.utcOffset), "%s", "NA");
             }
-            break;
         }
-    }
-
-    return 0;
-}
-
-int readNtpServerLeap61InProgress(char *progress, size_t size)
-{
-    // utc info
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x40000000;
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-    {
-        snprintf(progress, size, "%s", "err");
-        return -1;
-    }
-
-    for (int i = 0; i < 10; i++)
-    {
-        if (i == 9)
-        {
-            snprintf(progress, size, "%s", "err: read did not complete");
-            return -1;
-        }
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-        {
-            snprintf(progress, size, "%s", "read err");
-            return -1;
-        }
-
-        if ((temp_data & 0x80000000) != 0)
-        {
-            if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-            {
-                return -1;
-            }
-
-            if ((temp_data & 0x00000200) == 0)
-            {
-                snprintf(progress, size, "%s", "disabled");
-                // snprintf(status, size, "%lx", temp_data);
-            }
-            else
-            {
-                snprintf(progress, size, "%s", "enabled");
-            }
-            break;
-        }
-    }
-
-    return 0;
-}
-int readNtpServerLeap59InProgress(char *progress, size_t size)
-{
-    // utc info
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x40000000;
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-    {
-        snprintf(progress, size, "%s", "err");
-        return -1;
-    }
-
-    for (int i = 0; i < 10; i++)
-    {
-        if (i == 9)
-        {
-            snprintf(progress, size, "%s", "err: read did not complete");
-            return -1;
-        }
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-        {
-            snprintf(progress, size, "%s", "read err");
-            return -1;
-        }
-
-        if ((temp_data & 0x80000000) != 0)
-        {
-            if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-            {
-                return -1;
-            }
-
-            if ((temp_data & 0x00000400) == 0)
-            {
-                snprintf(progress, size, "%s", "disabled");
-                // snprintf(status, size, "%lx", temp_data);
-            }
-            else
-            {
-                snprintf(progress, size, "%s", "enabled");
-            }
-            break;
-        }
-    }
-
-    return 0;
-}
-int readNtpServerLeap61Status(char *status, size_t size) // leap 61 0x00000800
-{
-    // utc info
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x40000000;
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-    {
-        snprintf(status, size, "%s", "err");
-        return -1;
-    }
-
-    for (int i = 0; i < 10; i++)
-    {
-        if (i == 9)
-        {
-            snprintf(status, size, "%s", "err: read did not complete");
-            return -1;
-        }
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-        {
-            snprintf(status, size, "%s", "read err");
-            return -1;
-        }
-
-        if ((temp_data & 0x80000000) != 0)
-        {
-            if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-            {
-                return -1;
-            }
-
-            if ((temp_data & 0x00000800) == 0)
-            {
-                snprintf(status, size, "%s", "disabled");
-                // snprintf(status, size, "%lx", temp_data);
-            }
-            else
-            {
-                snprintf(status, size, "%s", "enabled");
-            }
-            break;
-        }
-    }
-
-    return 0;
-}
-int readNtpServerLeap59Status(char *status, size_t size)
-{
-    // utc info
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x40000000;
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-    {
-        snprintf(status, size, "%s", "err");
-        return -1;
-    }
-
-    for (int i = 0; i < 10; i++)
-    {
-        if (i == 9)
-        {
-            snprintf(status, size, "%s", "err: read did not complete");
-            return -1;
-        }
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-        {
-            snprintf(status, size, "%s", "read err");
-            return -1;
-        }
-
-        if ((temp_data & 0x80000000) != 0)
-        {
-            if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-            {
-                return -1;
-            }
-
-            if ((temp_data & 0x00001000) == 0)
-            {
-                snprintf(status, size, "%s", "disabled");
-                // snprintf(status, size, "%lx", temp_data);
-            }
-            else
-            {
-                snprintf(status, size, "%s", "enabled");
-            }
-            break;
-        }
-    }
-
-    return 0;
-}
-int readNtpServerUtcOffsetStatus(char *status, size_t size)
-{
-    // utc info
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x40000000;
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-    {
-        snprintf(status, size, "%s", "err");
-        return -1;
-    }
-
-    for (int i = 0; i < 10; i++)
-    {
-        if (i == 9)
-        {
-            snprintf(status, size, "%s", "err: read did not complete");
-            return -1;
-        }
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-        {
-            snprintf(status, size, "%s", "read err");
-            return -1;
-        }
-
-        if ((temp_data & 0x80000000) != 0)
-        {
-            if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-            {
-                return -1;
-            }
-
-            if ((temp_data & 0x00002000) == 0)
-            {
-                snprintf(status, size, "%s", "disabled");
-                // snprintf(status, size, "%lx", temp_data);
-            }
-            else
-            {
-                snprintf(status, size, "%s", "enabled");
-            }
-            break;
-        }
-    }
-
-    return 0;
-}
-int readNtpServerUtcOffsetValue(char *value, size_t size)
-{
-    // utc info
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x40000000;
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-    {
-        snprintf(value, size, "%s", "err");
-        return -1;
-    }
-
-    for (int i = 0; i < 10; i++)
-    {
-        if (i == 9)
-        {
-            snprintf(value, size, "%s", "err: read did not complete");
-            return -1;
-        }
-        if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-        {
-            snprintf(value, size, "%s", "read err");
-            return -1;
-        }
-
-        if ((temp_data & 0x80000000) != 0)
-        {
-            if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-            {
-                snprintf(value, size, "%s", "NA");
-                return -1;
-            }
-
-            snprintf(value, size, "%ld", ((temp_data >> 16) & 0x0000FFFF));
-            break;
-        }
-    }
-
-    return 0;
-}
-
-int readNtpServerRequestsValue(char *value, size_t size)
-{
-    temp_data = 0x00000000;
-    temp_addr = NTP_SERVER.address_range_low;
-    snprintf(value, size, "%s", "err");
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_CountReqReg, &temp_data))
-    {
-        snprintf(value, size, "%s", "NA");
-        return -1;
-    }
-    // ui->NtpServerRequestsValue->setText(QString::number(temp_data));
-    snprintf(value, size, "%ld", temp_data);
-    return 0;
-}
-int readNtpServerResponsesValue(char *value, size_t size)
-{
-    temp_data = 0x00000000;
-    temp_addr = NTP_SERVER.address_range_low;
-    snprintf(value, size, "%s", "err");
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_CountRespReg, &temp_data))
-    {
-        snprintf(value, size, "%s", "NA");
-
-        return -1;
-    }
-    // ui->NtpServerRequestsValue->setText(QString::number(temp_data));
-    snprintf(value, size, "%ld", temp_data);
-
-    return 0;
-}
-int readNtpServerRequestsDroppedValue(char *value, size_t size)
-{
-    temp_data = 0x00000000;
-    temp_addr = NTP_SERVER.address_range_low;
-    snprintf(value, size, "%s", "err");
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_CountReqDroppedReg, &temp_data))
-    {
-        snprintf(value, size, "%s", "NA");
-        return -1;
-    }
-    // ui->NtpServerRequestsValue->setText(QString::number(temp_data));
-    snprintf(value, size, "%ld", temp_data);
-
-    return 0;
-}
-int readNtpServerBroadcastsValue(char *value, size_t size)
-{
-    temp_data = 0x00000000;
-    temp_addr = NTP_SERVER.address_range_low;
-    snprintf(value, size, "%s", "err");
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_CountBroadcastReg, &temp_data))
-    {
-        snprintf(value, size, "%s", "NA");
-
-        return -1;
-    }
-    // ui->NtpServerRequestsValue->setText(QString::number(temp_data));
-    snprintf(value, size, "%lld", temp_data);
-
-    return 0;
-}
-int readNtpServerClearCountersStatus(char *status, size_t size)
-{
-    temp_data = 0x00000000;
-    temp_addr = NTP_SERVER.address_range_low;
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_CountControlReg, &temp_data))
-    {
-        snprintf(status, size, "%s", "NA");
-
-        return -1;
-    }
-    if ((temp_data & 0x00000001) == 0)
-    {
-        snprintf(status, size, "%s", "disable");
     }
     else
     {
-        snprintf(status, size, "%s", "enable");
+        // ui->NtpServerUtcLeap59CheckBox->setChecked(false);
+        ntlts->ntpServer.utcLeap59Enable = 0;
+        // ui->NtpServerUtcLeap61CheckBox->setChecked(false);
+        ntlts->ntpServer.utcLeap61Enable = 0;
+        // ui->NtpServerUtcLeap59InProgressCheckBox->setChecked(false);
+        ntlts->ntpServer.utcLeap59InProgress = 0;
+        // ui->NtpServerUtcLeap61InProgressCheckBox->setChecked(false);
+        ntlts->ntpServer.utcLeap61InProgress = 0;
+        // ui->NtpServerUtcOffsetValCheckBox->setChecked(false);
+        ntlts->ntpServer.utcOffsetEnable = 0;
+        // ui->NtpServerUtcSmearingCheckBox->setChecked(false);
+        ntlts->ntpServer.utcSmearingEnable = 0;
+        // ui->NtpServerUtcOffsetValue->setText("NA");
+        // ntlts->ntpServer.utcOffset = 0;
+        // snprintf(ntlts->ntpServer.utcOffset, sizeof(ntlts->ntpServer.utcOffset), "%s", "NA");
     }
 
-    return 0;
-}
-int readNtpServerVersion(char *version, size_t size)
-{
+    // status
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_CountReqReg, &temp_data))
+    {
+        ntlts->ntpRegs.CountReqReg = temp_data;
+        // ui->NtpServerRequestsValue->setText(QString::number(temp_data));
+        // snprintf(ntlts->ntpServer.requests, sizeof(ntlts->ntpServer.requests), "%d", temp_data);
+        ntlts->ntpServer.requests = temp_data;
+    }
+
+    else
+    {
+        // ui->NtpServerRequestsValue->setText("NA");
+        // snprintf(ntlts->ntpServer.requests, sizeof(ntlts->ntpServer.requests), "%s", "NA");
+        ntlts->ntpServer.requests = -1;
+    }
+
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_CountRespReg, &temp_data))
+    {
+        ntlts->ntpRegs.CountRespReg = temp_data;
+        // ui->NtpServerResponsesValue->setText(QString::number(temp_data));
+        // snprintf(ntlts->ntpServer.responses, sizeof(ntlts->ntpServer.responses), "%d", temp_data);
+        ntlts->ntpServer.responses = temp_data;
+    }
+
+    else
+    {
+        // snprintf(ntlts->ntpServer.responses, sizeof(ntlts->ntpServer.responses), "%s", "NA");
+        ntlts->ntpServer.responses = -1;
+    }
+
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_CountReqDroppedReg, &temp_data))
+    {
+        ntlts->ntpRegs.CountReqDroppedReg = temp_data;
+        // snprintf(ntlts->ntpServer.requestsDropped, sizeof(ntlts->ntpServer.requestsDropped), "%d", temp_data);
+        ntlts->ntpServer.requestsDropped = temp_data;
+    }
+
+    else
+    {
+        // snprintf(ntlts->ntpServer.requestsDropped, sizeof(ntlts->ntpServer.requestsDropped), "%s", "NA");
+        ntlts->ntpServer.requestsDropped = -1;
+    }
+
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_CountBroadcastReg, &temp_data))
+    {
+        ntlts->ntpRegs.CountBroadcastReg = temp_data;
+        // snprintf(ntlts->ntpServer.broadcasts, sizeof(ntlts->ntpServer.broadcasts), "%d", temp_data);
+        ntlts->ntpServer.broadcasts = temp_data;
+    }
+
+    else
+    {
+        // snprintf(ntlts->ntpServer.broadcasts, sizeof(ntlts->ntpServer.broadcasts), "%s", "NA");
+        ntlts->ntpServer.broadcasts = -1;
+    }
+
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_CountControlReg, &temp_data))
+    {
+
+        ntlts->ntpRegs.CountControlReg = temp_data;
+
+        if ((temp_data & 0x00000001) == 0)
+        {
+            ntlts->ntpServer.clearCounters = 0;
+        }
+        else
+        {
+            ntlts->ntpServer.clearCounters = 1;
+        }
+    }
+    else
+    {
+        ntlts->ntpServer.clearCounters = 0;
+    }
+
     // version
-    temp_addr = NTP_SERVER.address_range_low;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_VersionReg, &temp_data))
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_VersionReg, &temp_data))
     {
-        snprintf(version, size, "%s", "NA");
-
-        return -1;
+        ntlts->ntpRegs.VersionReg = temp_data;
+        ntlts->ntpServer.Version = temp_data;
+        // snprintf(ntlts->ntpServer.version, sizeof(ntlts->ntpServer.version), "0x%08x", temp_data);
     }
-    // ui->NtpServerVersionValue->setText(QString("0x%1").arg(temp_data, 8, 16, QLatin1Char('0')));
-    snprintf(version, size, "0x%llx", temp_data);
+    else
+    {
+        // snprintf(ntlts->ntpServer.version, sizeof(ntlts->ntpServer.version), "%s", "NA");
+        ntlts->ntpServer.Version = -1;
+    }
 
     return 0;
 }
 
-// read Ntp Server Instance Number ======================================================
-int readNtpServerInstanceNumber(char *instanceNumber, size_t size)
+uint8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 {
-    snprintf(instanceNumber, size, "%ld", NTP_SERVER.core_instance_nr);
-    return 0;
-}
 
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-//========================================//========================================//========================================//
-int writeNtpServerStatus(char *status, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
+    uint32_t temp_data = 0;
+    uint32_t temp_addr = 0;
 
-    if (0 == strncmp(status, "enabled", 7))
-    {
-        temp_data |= 0x00000001;
-    }
+    // uint8_t temp_string[STRING_SIZE] = {0};
 
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ControlReg, &temp_data))
+    temp_addr = ntlts->ntpRegs.StartAddr;
+
+    // mac
+    if (strlen(ntlts->ntpServer.MacAddr) > 17)
     {
         return -1;
     }
-    return 0;
-}
-int writeNtpServerMacAddress(char *addr, size_t size)
-{ // mac
-    // readConfig();
-    // AA:BB:CC:DD:EE:FF
-    if (strlen(addr) > 17)
-    {
-        return -1;
-    }
-    temp_addr = NTP_SERVER.address_range_low;
     // int j = 0;
-    long temp_mac = 0;
-    for (int i = 0, j = 0; i < size; i++)
+    uint64_t temp_mac = 0;
+    for (int i = 0, j = 0; i < strlen(ntlts->ntpServer.MacAddr) + 1; i++)
     {
-        if (addr[i] != ':')
+        if (ntlts->ntpServer.MacAddr[i] != ':')
         {
-            addr[j] = addr[i];
+            ntlts->ntpServer.MacAddr[j] = ntlts->ntpServer.MacAddr[i];
             j++;
         }
 
-        if (addr[i] == '\0')
+        if (ntlts->ntpServer.MacAddr[i] == '\0')
         {
             break;
         }
     }
 
-    temp_mac = strtol(addr, NULL, 16);
+    temp_mac = strtoull(ntlts->ntpServer.MacAddr, NULL, 16);
 
     temp_data = 0x00000000;
     temp_data |= (temp_mac >> 16) & 0x000000FF;
@@ -938,317 +641,295 @@ int writeNtpServerMacAddress(char *addr, size_t size)
     temp_data = temp_data << 8;
     temp_data |= (temp_mac >> 40) & 0x000000FF;
 
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigMac1Reg, &temp_data))
+    if (fromRegisters)
     {
-        return -1;
+        temp_data = ntlts->ntpRegs.ConfigMac1Reg;
     }
-
-    temp_data = 0x00000000;
-    temp_data |= (temp_mac >> 0) & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= (temp_mac >> 8) & 0x000000FF;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigMac2Reg, &temp_data))
+    if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigMac1Reg, &temp_data))
     {
-        return -1;
-    }
 
-    temp_data = 0x00000004; // write
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -1;
-    }
-    // write success
-    return 0;
-}
-
-int writeNtpServerVlanStatus(char *status, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigVlanReg, &temp_data))
-    {
-        return -1;
-    }
-
-    temp_data &= 0x0000FFFF;
-
-    if (0 == strncmp(status, "enabled", 7))
-    {
-        temp_data = 0x00010000 | temp_data;
-    }
-    else if (0 == strncmp(status, "disabled", 8))
-    {
-        temp_data = 0x00000000 | temp_data; // disable
-    }
-    else
-    {
-        return -2;
-    }
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigVlanReg, &temp_data))
-    {
-        return -3;
-    }
-
-    temp_data = 0x00000002;
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -4;
-    }
-
-    return 0;
-}
-int writeNtpServerVlanAddress(char *value, size_t size)
-{
-    // return -1;
-    //  readConfig();
-    if (strlen(value) > 6)
-    {
-        return -1;
-    }
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    long temp_vlan = 0;
-    value = &value[2];
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigVlanReg, &temp_data))
-    {
-        return -2; // read current settings fails
-    }
-
-    temp_vlan = strtol(value, NULL, 16);
-
-    temp_data &= 0xFFFF0000;
-
-    temp_data |= temp_vlan;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigVlanReg, &temp_data))
-    {
-        return -3;
-    }
-
-    temp_data = 0x00000002;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -4; // failed to write control reg
-    }
-
-    return 0;
-}
-
-int writeNtpServerIpMode(char *mode, const size_t size)
-{
-    char currentAddress[size];
-    int err = readNtpServerIpAddress(currentAddress, size);
-    if (err != 0)
-    {
-        return -1;
-    }
-
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -2;
-    }
-
-    if (0 == strncmp(mode, "IPv4", 4))
-    {
-        temp_data &= ~0x01000002;
-        temp_data |= 0x00000001;
-    }
-    else if (0 == strncmp(mode, "IPv6", 4))
-    {
-        char ipv6Address[size];
-        ///"current address: %s\n", currentAddress);
-
-        temp_data &= ~0x00000001;
-        temp_data |= 0x01000002;
-
-        // printf("IPv6 address: %s\n", ipv6Address);
-    }
-    else
-    {
-        return -3;
-    }
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        // failed to update config
-        return -4;
-    }
-    temp_data = 0x00000001;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        // failed to update config control reg
-        return -5;
-    }
-    // printf("current IP address: %s\n", tempIpAddress);
-
-    if (0 != writeNtpServerIpAddress(currentAddress, size))
-    {
-        return -6;
-    }
-
-    return 0;
-}
-int writeNtpServerIpAddress(char *ipAddress, size_t size)
-{
-    char currentMode[size];
-
-    if (0 != readNtpServerIpMode(currentMode, size))
-    {
-        // printf("failed to read current mode\n");
-        return -1;
-    }
-
-    if (0 == strncmp(currentMode, "IPv4", 4))
-    {
-        if (0 != ipv4_addr_to_register_value(ipAddress, size))
+        temp_data = 0x00000000;
+        temp_data |= (temp_mac >> 0) & 0x000000FF;
+        temp_data = temp_data << 8;
+        temp_data |= (temp_mac >> 8) & 0x000000FF;
+        if (fromRegisters)
         {
-            // printf("failed to write ipv4 crap\n");
-            return -4;
+            temp_data = ntlts->ntpRegs.ConfigMac2Reg;
+        }
+        if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigMac2Reg, &temp_data))
+        {
+
+            temp_data = 0x00000004; // write
+                                    // ntlts->ntpRegs.ConfigControlReg = temp_data;
+            if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
+            {
+                // ui->NtpServerMacValue->setText(temp_string);
+            }
+            else
+            {
+                // ui->NtpServerMacValue->setText("NA");
+            }
+        }
+        else
+        {
+            // ui->NtpServerMacValue->setText("NA");
         }
     }
-    else if (0 == strncmp(currentMode, "IPv6", 4))
+    else
     {
-        ipv6_addr_to_register_value(ipAddress, size);
+        // ui->NtpServerMacValue->setText("NA");
+    }
+
+    // vlan
+    // temp_string = ui->NtpServerVlanValue->text();
+
+    // temp_data = strtol(ntlts->ntpServer.vlanAddr, NULL, 16);
+    temp_data = ntlts->ntpServer.vlanAddr;
+
+    // temp_data = temp_string.toUInt(nullptr, 16);
+    temp_data &= 0x0000FFFF;
+    if (ntlts->ntpServer.vlanEnable == 1)
+    {
+        // printf("trying to enable?\n");
+        temp_data |= 0x00010000; // enable
+    }
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->ntpRegs.ConfigVlanReg;
+    }
+    if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigVlanReg, &temp_data))
+    {
+        temp_data &= 0x0000FFFF;
+        // ui->NtpServerVlanValue->setText(QString("0x%1").arg(temp_data, 4, 16, QLatin1Char('0')));
+
+        // printf("init write\n");
+
+        temp_data = 0x00000002; // write
+                                // ntlts->ntpRegs.ConfigControlReg = temp_data;
+        if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
+        {
+            // nothing
+            // printf("second write\n");
+        }
+        else
+        {
+            // ui->NtpServerVlanEnableCheckBox->setChecked(false);
+            // ui->NtpServerVlanValue->setText("NA");
+        }
     }
     else
     {
-        return -6;
+        // ui->NtpServerVlanEnableCheckBox->setChecked(false);
+        // ui->NtpServerVlanValue->setText("NA");
     }
-    return 0;
-}
 
-int ipv4_addr_to_register_value(char *ipAddress, size_t size)
-{
-    long temp_ip[4] = {0};
+    temp_data = 0x00000000;
+    // temp_string = ui->NtpServerIpModeValue->currentText();
+    if (strncmp(ntlts->ntpServer.ipMode, "IPv4", strlen("IPv4")) == 0)
+    // if (temp_string == "IPv4")
+    {
+        temp_data |= 0x00000001;
+    }
+    else if (strncmp(ntlts->ntpServer.ipMode, "IPv6", strlen("IPv6")) == 0)
+    {
+        temp_data |= 0x01000002;
+    }
+    else
+    {
+        temp_data |= 0x00000000;
+    }
 
-    if (strchr(ipAddress, '.'))
-    { // ipv4
-        // printf("ipv4 case \n");
+    if (ntlts->ntpServer.unicastEnable)
+    {
+        temp_data |= 0x00000010;
+    }
+
+    if (ntlts->ntpServer.multicastEnable)
+    {
+        temp_data |= 0x00000020;
+    }
+
+    if (ntlts->ntpServer.broadcastEnable)
+    {
+        temp_data |= 0x00000040;
+    }
+
+    // temp_string = ui->NtpServerPrecisionValue->text();
+    temp_data |= ((ntlts->ntpServer.Precision & 0x000000FF) << 8);
+
+    // temp_string = ui->NtpServerPollIntervalValue->text();
+    // temp_data |= ((temp_string.toUInt(nullptr, 10) & 0x000000FF) << 16);
+    temp_data |= ((ntlts->ntpServer.PollInterval & 0x000000FF) << 16);
+
+    // temp_string = ui->NtpServerStratumValue->text();
+    // temp_data |= ((temp_string.toUInt(nullptr, 10) & 0x000000FF) << 24);
+    temp_data |= ((ntlts->ntpServer.Stratum & 0x000000FF) << 24);
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->ntpRegs.ConfigModeReg;
+    }
+    if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
+    {
+        temp_data = 0x00000001; // write
+                                // ntlts->ntpRegs.ConfigControlReg = temp_data;
+        if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
+        {
+            // nothing
+        }
+        else
+        {
+        }
+    }
+    else
+    {
+    }
+
+    temp_data = 0x00000000;
+
+    char *token;
+    char referenceOptions[91] = "NTP,NULL,LOCL,CESM,RBDM,PPS,IRIG,ACTS,USNO,PTB,TDF,DCF,MSF,WWV,WWVB,WWVH,CHU,LORC,OMEG,GPS";
+
+    for (int i = 0; i < strlen(referenceOptions); i++) // num of ref options 20 + 1
+    {
+        token = (i == 0) ? strtok(referenceOptions, ",") : strtok(NULL, ",");
+        if (token == NULL)
+        {
+            return -1;
+        }
+
+        if (0 == strncmp(token, ntlts->ntpServer.referenceId, strlen(ntlts->ntpServer.referenceId)))
+        {
+            break;
+        }
+    }
+
+    if (strlen(ntlts->ntpServer.referenceId) == 1)
+    {
+        temp_data |= ntlts->ntpServer.referenceId[0];
+        temp_data = temp_data << 24;
+    }
+    else if (strlen(ntlts->ntpServer.referenceId) == 2)
+    {
+        temp_data |= ntlts->ntpServer.referenceId[0];
+        temp_data = temp_data << 8;
+        temp_data |= ntlts->ntpServer.referenceId[1];
+        temp_data = temp_data << 16;
+    }
+    else if (strlen(ntlts->ntpServer.referenceId) == 3)
+    {
+        temp_data |= ntlts->ntpServer.referenceId[0];
+        temp_data = temp_data << 8;
+        temp_data |= ntlts->ntpServer.referenceId[1];
+        temp_data = temp_data << 8;
+        temp_data |= ntlts->ntpServer.referenceId[2];
+        temp_data = temp_data << 8;
+    }
+    else if (strlen(ntlts->ntpServer.referenceId) >= 4)
+    {
+        temp_data |= ntlts->ntpServer.referenceId[0];
+        temp_data = temp_data << 8;
+        temp_data |= ntlts->ntpServer.referenceId[1];
+        temp_data = temp_data << 8;
+        temp_data |= ntlts->ntpServer.referenceId[2];
+        temp_data = temp_data << 8;
+        temp_data |= ntlts->ntpServer.referenceId[3];
+    }
+    else
+    {
+        // nothing
+    }
+    if (fromRegisters)
+    {
+        temp_data = ntlts->ntpRegs.ConfigReferenceIdReg;
+    }
+    if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigReferenceIdReg, &temp_data))
+    {
+        temp_data = 0x00000010; // write
+                                // ntlts->ntpRegs.ConfigControlReg = temp_data;
+        if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
+        {
+            // nothing
+        }
+        else
+        {
+            // ui->NtpServerReferenceIdValue->setText("NA");
+        }
+    }
+    else
+    {
+        // ui->NtpServerReferenceIdValue->setText("NA");
+    }
+
+    // ip
+    // temp_string = ui->NtpServerIpModeValue->currentText();
+    if (strncmp(ntlts->ntpServer.ipMode, "IPv4", strlen("IPv4")) == 0)
+    {
+
+        long temp_ip[4] = {0};
 
         char *token;
         for (int i = 0; i < 4; i++)
         {
-            token = (i == 0) ? strtok(ipAddress, ".") : strtok(NULL, ".");
+            token = (i == 0) ? strtok(ntlts->ntpServer.ipAddr, ".") : strtok(NULL, ".");
             if (token == NULL)
                 break;
             temp_ip[i] = strtol(token, NULL, 10);
         }
-    }
 
-    else if (strchr(ipAddress, ':'))
-    {
-        // temp_ip[0] = 0;
-        // temp_ip[1] = 0;
-        // temp_ip[2] = 0;
-        // temp_ip[3] = 0;
+        temp_data = 0x00000000;
+        temp_data |= (temp_ip[3]) & 0x000000FF;
+        temp_data = temp_data << 8;
+        temp_data |= (temp_ip[2]) & 0x000000FF;
+        temp_data = temp_data << 8;
+        temp_data |= (temp_ip[1]) & 0x000000FF;
+        temp_data = temp_data << 8;
+        temp_data |= (temp_ip[0]) & 0x000000FF;
 
-        ipAddress = ipAddress + 25;
-
-        char *token;
-        char byte[3];
-        for (int i = 0; i < 4; i += 2)
+        if (fromRegisters)
         {
-
-            if (i == 0)
+            temp_data = ntlts->ntpRegs.ConfigIpReg;
+        }
+        if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
+        {
+            temp_data = 0x00000008; // write
+                                    // ntlts->ntpRegs.ConfigControlReg = temp_data;
+            if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
             {
-                token = strtok(ipAddress, ":"); // grabs first token
-                // printf("first token: %s\n", token);
-                if (0 == strncmp(token, "ffff", 5))
-                {
-                    token = strtok(NULL, ":");
-                    // printf("ffff so it is a mapped ipv4\n");
-                }
-                else
-                {
-                    // printf("not ffff, not mapped so exit\n");
-                    temp_ip[0] = 0;
-                    temp_ip[1] = 0;
-                    temp_ip[2] = 0;
-                    temp_ip[3] = 0;
-                    break;
-                }
+                // ui->NtpServerIpValue->setText(temp_string);
             }
             else
             {
-                token = strtok(NULL, ":");
+                // ui->NtpServerIpValue->setText("NA");
             }
-
-            if (token == NULL)
-                break;
-
-            // printf("token: %s \n", token);
-            //  Extract first two characters
-            strncpy(byte, token, 2);
-
-            snprintf(byte, 3, "%2s", token);
-
-            // printf("byte: %s \n", byte);
-
-            temp_ip[i] = strtol(byte, NULL, 16);
-
-            // Extract next two characters
-            snprintf(byte, 3, "%2s", token + 2);
-            // printf("byte: %s \n", byte);
-
-            temp_ip[i + 1] = strtol(byte, NULL, 16);
+        }
+        else
+        {
+            // ui->NtpServerIpValue->setText("NA");
         }
     }
-    else
+    if (strncmp(ntlts->ntpServer.ipMode, "IPv6", strlen("IPv6")) == 0)
     {
-        // printf("big fat else\n");
-        return -1;
-    }
-    temp_data = 0x00000000;
-    temp_data |= (temp_ip[3]) & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= (temp_ip[2]) & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= (temp_ip[1]) & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= (temp_ip[0]) & 0x000000FF;
+        // temp_string = ui->NtpServerIpValue->text();
+        // temp_ip6 = QHostAddress(temp_string).toIPv6Address();
 
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
-    {
-        // printf("failed to write config \n");
-        return -1;
-    }
-    temp_data = 0x00000008; // write
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        // printf("failed to write control \n");
-        return -1;
-    }
-    return 0;
-}
-int ipv6_addr_to_register_value(char *ipAddress, size_t size)
-{
-    long temp_ip[16] = {0};
+        long temp_ip6[16] = {0};
 
-    if (strchr(ipAddress, ':'))
-    { // ipv4
         char *token;
         char *err;
         char byte[3];
-        for (int i = 0; i < size; i += 2)
+        for (int i = 0; i < 32; i += 2)
         {
 
-            token = (i == 0) ? strtok(ipAddress, ":") : strtok(NULL, ":");
+            token = (i == 0) ? strtok(ntlts->ntpServer.ipAddr, ":") : strtok(NULL, ":");
             if (token == NULL)
                 break;
 
             // Extract first two characters
             strncpy(byte, token, 2);
             byte[2] = '\0';
-            temp_ip[i] = strtol(byte, &err, 16);
+            temp_ip6[i] = strtol(byte, &err, 16);
             if (err == token || *err != '\0')
             {
                 return -1;
@@ -1257,585 +938,211 @@ int ipv6_addr_to_register_value(char *ipAddress, size_t size)
             // Extract next two characters
             strncpy(byte, token + 2, 2);
             byte[2] = '\0';
-            temp_ip[i + 1] = strtol(byte, &err, 16);
+            temp_ip6[i + 1] = strtol(byte, &err, 16);
             if (err == token || *err != '\0')
             {
                 return -1;
             }
         }
-    }
 
-    else if (strchr(ipAddress, '.'))
-    {
-        char *token;
-        char *err;
-        for (int i = 12; i < 16; i++)
+        temp_data = 0x00000000;
+        temp_data |= temp_ip6[3] & 0x000000FF;
+        temp_data = temp_data << 8;
+        temp_data |= temp_ip6[2] & 0x000000FF;
+        temp_data = temp_data << 8;
+        temp_data |= temp_ip6[1] & 0x000000FF;
+        temp_data = temp_data << 8;
+        temp_data |= temp_ip6[0] & 0x000000FF;
+        if (fromRegisters)
         {
-            token = (i == 12) ? strtok(ipAddress, ".") : strtok(NULL, ".");
-            if (token == NULL)
-                break;
-            temp_ip[i] = strtol(token, &err, 10);
+            temp_data = ntlts->ntpRegs.ConfigIpReg;
+        }
 
-            if (err == token || *err != '\0')
+        // if (temp_string == "NA")
+        if (strncmp(ntlts->ntpServer.ipAddr, "NA", strlen("NA")) == 0)
+        {
+            // nothing
+        }
+        else if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
+        {
+            temp_data = 0x00000000;
+            temp_data |= temp_ip6[7] & 0x000000FF;
+            temp_data = temp_data << 8;
+            temp_data |= temp_ip6[6] & 0x000000FF;
+            temp_data = temp_data << 8;
+            temp_data |= temp_ip6[5] & 0x000000FF;
+            temp_data = temp_data << 8;
+            temp_data |= temp_ip6[4] & 0x000000FF;
+            if (fromRegisters)
             {
-                return -1;
+                temp_data = ntlts->ntpRegs.ConfigIpv61Reg;
+            }
+            // if (temp_string == "NA")
+            if (strncmp(ntlts->ntpServer.ipAddr, "NA", strlen("NA")) == 0)
+            {
+                // nothing
+            }
+            else if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigIpv61Reg, &temp_data))
+            {
+                temp_data = 0x00000000;
+                temp_data |= temp_ip6[11] & 0x000000FF;
+                temp_data = temp_data << 8;
+                temp_data |= temp_ip6[10] & 0x000000FF;
+                temp_data = temp_data << 8;
+                temp_data |= temp_ip6[9] & 0x000000FF;
+                temp_data = temp_data << 8;
+                temp_data |= temp_ip6[8] & 0x000000FF;
+                if (fromRegisters)
+                {
+                    temp_data = ntlts->ntpRegs.ConfigIpv62Reg;
+                }
+                // if (temp_string == "NA")
+                if (strncmp(ntlts->ntpServer.ipAddr, "NA", strlen("NA")) == 0)
+                {
+                    // nothing
+                }
+                else if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigIpv62Reg, &temp_data))
+                {
+                    temp_data = 0x00000000;
+                    temp_data |= temp_ip6[15] & 0x000000FF;
+                    temp_data = temp_data << 8;
+                    temp_data |= temp_ip6[14] & 0x000000FF;
+                    temp_data = temp_data << 8;
+                    temp_data |= temp_ip6[13] & 0x000000FF;
+                    temp_data = temp_data << 8;
+                    temp_data |= temp_ip6[12] & 0x000000FF;
+                    if (fromRegisters)
+                    {
+                        temp_data = ntlts->ntpRegs.ConfigIpv63Reg;
+                    }
+                    // if (temp_string == "NA")
+                    if (strncmp(ntlts->ntpServer.ipAddr, "NA", strlen("NA")) == 0)
+
+                    {
+                        // nothing
+                    }
+                    else if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigIpv63Reg, &temp_data))
+                    {
+                        temp_data = 0x00000008; // write
+                                                // ntlts->ntpRegs.ConfigControlReg = temp_data;
+                        if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
+                        {
+                            // ui->NtpServerIpValue->setText(temp_string);
+                        }
+                        else
+                        {
+                            // ui->NtpServerIpValue->setText("NA");
+                        }
+                    }
+                    else
+                    {
+                        // ui->NtpServerIpValue->setText("NA");
+                    }
+                }
+                else
+                {
+                    // ui->NtpServerIpValue->setText("NA");
+                }
+            }
+            else
+            {
+                // ui->NtpServerIpValue->setText("NA");
             }
         }
-        temp_ip[10] = 0x000000FF;
-        temp_ip[11] = 0x000000FF;
+        else
+        {
+            // ui->NtpServerIpValue->setText("NA");
+        }
     }
     else
     {
-        return -1;
+        // ui->NtpServerIpValue->setText("NA");
     }
 
     temp_data = 0x00000000;
-    temp_data |= temp_ip[3] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[2] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[1] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[0] & 0x000000FF;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigIpReg, &temp_data))
-    {
-        return -1;
-    }
-    temp_data = 0x00000000;
-    temp_data |= temp_ip[7] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[6] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[5] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[4] & 0x000000FF;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigIpv61Reg, &temp_data))
-    {
-        return -2;
-    }
-    temp_data = 0x00000000;
-    temp_data |= temp_ip[11] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[10] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[9] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[8] & 0x000000FF;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigIpv62Reg, &temp_data))
-    {
-        return -3;
-    }
-    temp_data = 0x00000000;
-    temp_data |= temp_ip[15] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[14] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[13] & 0x000000FF;
-    temp_data = temp_data << 8;
-    temp_data |= temp_ip[12] & 0x000000FF;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigIpv63Reg, &temp_data))
-    {
-        return -4;
-    }
-    temp_data = 0x00000008; // write
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -5;
-    }
-    return 0;
-}
-
-int writeNtpServerUnicastMode(char *mode, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -1;
-    }
-
-    temp_data &= ~0x00000010;
-
-    if (0 == strncmp(mode, "enabled", 7))
-    {
-        temp_data |= 0x000000010;
-    }
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -3;
-    }
-
-    temp_data = 0x00000001;
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -4;
-    }
-
-    return 0;
-}
-
-int writeNtpServerMulticastMode(char *mode, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -1;
-    }
-    temp_data &= ~0x00000020;
-
-    if (0 == strncmp(mode, "enabled", 7))
-    {
-        temp_data |= 0x000000020;
-    }
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -2;
-    }
-    temp_data = 0x00000001;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -3;
-    }
-    return 0;
-}
-int writeNtpServerBroadcastMode(char *mode, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -1;
-    }
-
-    temp_data &= ~0x00000040; // clear it
-
-    if (0 == strncmp(mode, "enabled", 7))
-    {
-        temp_data |= 0x000000040;
-    }
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -3;
-    }
-
-    temp_data = 0x00000001;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -4;
-    }
-
-    return 0;
-}
-
-int writeNtpServerPrecisionValue(char *value, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-
-    temp_data = 0x00000000;
-    char *err;
-    long temp_precision = 0;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -1;
-    }
-
-    temp_precision = strtol(value, &err, 16);
-
-    if (err == value || *err != '\0')
-    {
-        return -2;
-    }
-    temp_data &= ~((0xFFFFFFFF & 0x000000FF) << 8);
-    temp_data |= ((temp_precision & 0x000000FF) << 8);
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -3;
-    }
-
-    temp_data = 0x00000001;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -4;
-    }
-
-    return 0;
-}
-
-int writeNtpServerPollIntervalValue(char *value, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-
-    temp_data = 0x00000000;
-    char *err;
-    long temp_precision = 0;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -1;
-    }
-
-    temp_precision = strtol(value, &err, 16);
-
-    if (err == value || *err != '\0')
-    {
-        return -2;
-    }
-    temp_data &= ~((0xFFFFFFFF & 0x000000FF) << 16);
-    temp_data |= ((temp_precision & 0x000000FF) << 16);
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -3;
-    }
-
-    temp_data = 0x00000001;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -4;
-    }
-
-    return 0;
-}
-
-int writeNtpServerStratumValue(char *value, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    char *err;
-    long temp_stratum = 0;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -1;
-    }
-
-    temp_stratum = strtol(value, &err, 16);
-
-    if (err == value || *err != '\0')
-    {
-        return -1;
-    }
-    temp_data &= ~((0xFFFFFFFF & 0x000000FF) << 24);
-    temp_data |= ((temp_stratum & 0x000000FF) << 24);
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
-    {
-        return -1;
-    }
-    temp_data = 0x00000001;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -1;
-    }
-    return 0;
-}
-int writeNtpServerReferenceIdValue(char *referenceId, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    char *token;
-    char referenceOptions[91] = "NTP,NULL,LOCL,CESM,RBDM,PPS,IRIG,ACTS,USNO,PTB,TDF,DCF,MSF,WWV,WWVB,WWVH,CHU,LORC,OMEG,GPS";
-
-    for (int i = 0; i < size; i++) // num of ref options 20 + 1
-    {
-        token = (i == 0) ? strtok(referenceOptions, ",") : strtok(NULL, ",");
-        if (token == NULL)
-        {
-            return -1;
-        }
-
-        if (0 == strncmp(token, referenceId, strlen(referenceId)))
-        {
-            break;
-        }
-    }
-
-    if (1 == strlen(referenceId))
-    {
-        temp_data |= referenceId[0];
-        temp_data = temp_data << 24;
-    }
-    else if (2 == strlen(referenceId))
-    {
-        temp_data |= referenceId[0];
-        temp_data = temp_data << 8;
-        temp_data |= referenceId[1];
-        temp_data = temp_data << 16;
-    }
-    else if (3 == strlen(referenceId))
-    {
-        temp_data |= referenceId[0];
-        temp_data = temp_data << 8;
-        temp_data |= referenceId[1];
-        temp_data = temp_data << 8;
-        temp_data |= referenceId[2];
-        temp_data = temp_data << 8;
-    }
-    else if (4 == strlen(referenceId))
-    {
-        temp_data |= referenceId[0];
-        temp_data = temp_data << 8;
-        temp_data |= referenceId[1];
-        temp_data = temp_data << 8;
-        temp_data |= referenceId[2];
-        temp_data = temp_data << 8;
-        temp_data |= referenceId[3];
-    }
-    else
-    {
-        return -1;
-    }
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigReferenceIdReg, &temp_data))
-    {
-        return -1;
-    }
-    temp_data = 0x00000010;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
-    {
-        return -1;
-    }
-    return 0;
-}
-int writeNtpServerUtcSmearingStatus(char *status, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-    {
-        return -1;
-    }
-
-    temp_data &= ~0x00000100; // Clear bit (using NOT + AND)
-    if (0 == strncmp(status, "enabled", 7))
+    // if (true == ui->NtpServerUtcSmearingCheckBox->isChecked())
+    if (ntlts->ntpServer.utcSmearingEnable)
     {
         temp_data |= 0x00000100;
     }
-    else if (0 == strncmp(status, "disabled", 8))
-    {
-        temp_data |= 0x00000000;
-    }
-    else
-    {
-        return -1;
-    }
 
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-    {
-        return -1;
-    }
-    temp_data = 0x00000003;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-    {
-        return -1;
-    }
-    return 0;
-}
-int writeNtpServerLeap61Status(char *status, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-    {
-        return -1;
-    }
-
-    temp_data &= ~0x00000800; // Clear bit (using NOT + AND)
-    if (0 == strncmp(status, "enabled", 7))
+    // if (true == ui->NtpServerUtcLeap61CheckBox->isChecked())
+    if (ntlts->ntpServer.utcLeap61Enable)
     {
         temp_data |= 0x00000800;
     }
-    else if (0 == strncmp(status, "disabled", 8))
-    {
-        temp_data |= 0x00000000;
-    }
-    else
-    {
-        return -1;
-    }
 
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-    {
-        return -1;
-    }
-    temp_data = 0x00000003;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-    {
-        return -1;
-    }
-    return 0;
-}
-int writeNtpServerLeap59Status(char *status, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-    {
-        return -1;
-    }
-
-    temp_data &= ~0x00001000; // Clear bit (using NOT + AND)
-    if (0 == strncmp(status, "enabled", 7))
+    // if (true == ui->NtpServerUtcLeap59CheckBox->isChecked())
+    if (ntlts->ntpServer.utcLeap59Enable)
     {
         temp_data |= 0x00001000;
     }
-    else if (0 == strncmp(status, "disabled", 8))
-    {
-        temp_data |= 0x00000000;
-    }
-    else
-    {
-        return -1;
-    }
 
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-    {
-        return -1;
-    }
-    temp_data = 0x00000003;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-    {
-        return -1;
-    }
-    return 0;
-}
-int writeNtpServerUtcOffsetStatus(char *status, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-    {
-        return -1;
-    }
-
-    temp_data &= ~0x00002000; // Clear bit (using NOT + AND)
-    if (0 == strncmp(status, "enabled", 7))
+    // if (true == ui->NtpServerUtcOffsetValCheckBox->isChecked())
+    if (ntlts->ntpServer.utcOffsetEnable)
     {
         temp_data |= 0x00002000;
     }
-    else if (0 == strncmp(status, "disabled", 8))
+
+    // temp_string = ui->NtpServerUtcOffsetValue->text();
+    temp_data |= ((ntlts->ntpServer.utcOffset & 0x0000FFFF) << 16);
+    if (fromRegisters)
     {
-        temp_data |= 0x00000000;
+        temp_data = ntlts->ntpRegs.UtcInfoReg;
+    }
+    if (0 == write_reg(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
+    {
+        temp_data = 0x00000003; // write utc info and leap
+                                // ntlts->ntpRegs.UtcInfoControlReg = temp_data;
+        if (0 == write_reg(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
+        {
+            // nothing
+        }
+        else
+        {
+            // ui->NtpServerUtcLeap59CheckBox->setChecked(false);
+        }
     }
     else
     {
-        return -1;
+        // ui->NtpServerUtcLeap59CheckBox->setChecked(false);
     }
 
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
+    // status
+    temp_data = 0x00000000; // nothing
+    if (ntlts->ntpServer.clearCounters)
     {
-        return -1;
+        temp_data |= 0x00000001; // enable
     }
-    temp_data = 0x00000003;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
+    if (fromRegisters)
     {
-        return -1;
+        temp_data = ntlts->ntpRegs.CountControlReg;
     }
-    return 0;
-}
-int writeNtpServerUtcOffsetValue(char *value, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    long temp_value = 0;
-    char *err;
-    if (0 != readRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
+    if (0 == write_reg(temp_addr + Ucm_NtpServer_CountControlReg, &temp_data))
     {
-        return -1;
+        // nothing
     }
-
-    temp_data &= 0x0000FFFF;
-
-    temp_value = strtol(value, &err, 10);
-
-    if (err == value || *err != '\0')
-    {
-        return -1;
-    }
-
-    temp_data |= ((temp_value & 0x0000FFFF) << 16);
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoReg, &temp_data))
-    {
-        return -1;
-    }
-    temp_data = 0x00000003;
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_UtcInfoControlReg, &temp_data))
-    {
-        return -1;
-    }
-    return 0;
-}
-int writeNtpServerClearCountersStatus(char *value, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-    temp_data = 0x00000000;
-    temp_data |= 0x00000001; // clear 'em!
-
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_CountControlReg, &temp_data))
-    {
-        return -1;
-    }
-    return 0;
-}
-
-//
-int writeStatus(char *status, size_t size)
-{
-    temp_addr = NTP_SERVER.address_range_low;
-
-    if (0 == strncmp(status, "enable", 7))
-    {
-        temp_data = 0x00000001;
-    }
-
-    else if (0 == strncmp(status, "disable", 8))
-    {
-        temp_data = 0x00000000;
-    }
-
     else
     {
-        return -1;
-        // printf("PLEASE ENTER A VALID STATUS\n");
-        // temp_data = 0x00000000;
     }
 
-    if (0 != writeRegister(temp_addr + Ucm_NtpServer_ControlReg, &temp_data))
+    temp_data = 0x00000000; // nothing
+    if (ntlts->ntpServer.Enable)
     {
-        return -1;
+        temp_data |= 0x00000001; // enable
     }
-
+    if (fromRegisters)
+    {
+        temp_data = ntlts->ntpRegs.ControlReg;
+    }
+    if (0 == write_reg(temp_addr + Ucm_NtpServer_ControlReg, &temp_data))
+    {
+        // nothing
+    }
+    else
+    {
+    }
     return 0;
 }
+
+#endif

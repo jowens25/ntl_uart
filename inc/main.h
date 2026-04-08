@@ -1,0 +1,4 @@
+#define LINUX
+#define NTL_TIME_SERVER
+#define USE_SOCKET
+#define IGNORE_READ_WRITE_DEFS

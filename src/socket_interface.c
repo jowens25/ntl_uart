@@ -1,16 +1,4 @@
-/*
- * ntl_uart.c
- *
- *  Created on: Nov 3, 2025
- *      Author: JacobOwens
- */
 
-#include "ntl_uart.h"
-#include "cores.h"
-
-#include "main.h"
-#ifdef LINUX
-#include "socket_interface.h"
 #include "common.h"
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -24,152 +12,69 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <syslog.h>
-#else
-#include "uartCircBuff.h"
-#endif
+#include "socket_interface.h"
+#include "ntl_uart.h"
 
-#include "stdlib.h"
-#include "string.h"
-#include "stdbool.h"
-#ifdef NTL_TIME_SERVER
+int socket_fd = 0;
 
-volatile int ntlRspReceived = 0;
-volatile int ntlCmdReceived = 0;
-
-volatile uint32_t cycles = 10;
-
-volatile int FORWARD_MESSAGES = 0;
-int ntlWriteSuccess = 0;
-int ntlOperation = 0; // 0 = read, 1 = write
-int ntlModule = 0;    // ntl type
-int ntlProperty = 0;
-int updated = 0;
-char ntlCommandBuff[32] = {0};
-char ntlResponseBuff[32] = {0};
-
-char ntlCmd[64] = {0};
-char gpntlBuff[64] = {0};
-char ntlRsp[64] = {0};
-char *ntlValue;
-
-int get_length_by_char(char *myString, char *myChar)
+void readSocket(int socket_fd, char *msg)
 {
-    int max = 256;
-    char *start = myString;
-    char *end = myString;
+    char out[STRING_SIZE] = {0};
 
-    if (myString == NULL || myChar == NULL)
+    fd_set read_fds;
+
+    for (int i = 0; i < 50; i++)
     {
-        return -1;
-    }
 
-    while (*end != '\0' && *end != *myChar)
-    {
-        end++;
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 100000; // 100ms
 
-        if (end - start >= max)
+        FD_ZERO(&read_fds);
+        FD_SET(socket_fd, &read_fds);
+
+        int status = select(socket_fd + 1, &read_fds, NULL, NULL, &tv);
+        if (status == -1)
         {
-            return -1; // not found within max length
+            exit(4);
         }
-    }
-
-    // Check if we found the character or hit null terminator
-    if (*end != *myChar)
-    {
-        return -1; // character not found
-    }
-
-    return end - start;
-}
-
-#ifndef USE_SOCKET
-
-void NTL_COM_HANDLER(void)
-{
-
-    // GPNTL,op,module,data
-
-    if (strncmp(gpntlBuff, "NTPGET", 6) == 0)
-    {
-
-        char buff[64] = {0};
-
-        snprintf(buff, 63, "%s\r\n", ntlts.ntpServer.ipAddr);
-
-        UART0_SendBuff(buff, 64);
-        return;
-    }
-
-    char *tok;
-    // int field = 0;
-
-    gpntlBuff[sizeof(gpntlBuff) - 1] = '\0';
-
-    tok = strtok(gpntlBuff, ","); // returns $GPNTL
-
-    tok = strtok(NULL, ",");
-    ntlOperation = strtol(tok, NULL, 10);
-
-    tok = strtok(NULL, ","); // module
-    ntlModule = strtol(tok, NULL, 10);
-
-    ntlValue = NULL;
-    ntlValue = strtok(NULL, ","); // value
-
-    switch (ntlModule)
-    {
-    case Ucm_CoreConfig_TodSlaveCoreType:
-        break;
-
-    case Ucm_CoreConfig_PtpOrdinaryClockCoreType:
-        break;
-
-    case Ucm_CoreConfig_PpsSlaveCoreType:
-        break;
-
-    case Ucm_CoreConfig_NtpServerCoreType:
-
-        ntp_server_read_values(&ntlts);
-
-        break;
-
-    case Ucm_CoreConfig_ConfSlaveCoreType: // remove?
-        break;
-
-    case Ucm_CoreConfig_ClkClockCoreType:
-        break;
-
-    case 0:
-
-        /* int err = ntlConnect();
-        if (err != 0)
+        else
         {
-            snprintf(ntlRsp, 31, "$GPNTL,ERR,CONNECTION FAILED\r\n");
-            UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
-        }
-        err = getCores();
-        if (err != 0)
-        {
-            snprintf(ntlRsp, 30, "$GPNTL,ERR,GET_CORES FAILED\r\n");
-            UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
+            if (!status)
+            {
+                printf("timeout exiting\n");
+                break;
+                continue;
+            }
         }
 
-        snprintf(ntlRsp, 15, "$GPNTL,CC,GC\r\n");
-        UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
-        break;
-        */
+        if (FD_ISSET(socket_fd, &read_fds))
+        {
+
+            int n = read(socket_fd, msg, CHUNK_SIZE);
+
+            msg[n] = '\0';
+            strncat(out, msg, strlen(msg));
+
+            if (msg[n - 1] == '\n')
+            {
+                // printf("%s", out);
+                strncpy(msg, out, strlen(out));
+                break;
+            }
+        }
     }
 }
-#endif
-
+#ifndef IGNORE_READ_WRITE_DEFS
 uint8_t read_reg(const uint32_t addr, uint32_t *data)
 {
     int debug = 0;
-    // uint8_t data_length;
+    uint8_t data_length;
+    // QByteArray temp_data;
     char temp_data[STRING_SIZE] = {0};
     char read_data[STRING_SIZE] = {0};
     char write_data[STRING_SIZE] = {0};
-    uint8_t checksum;
+    char checksum;
     char temp_string[STRING_SIZE] = {0};
 
     char hexAddr[STRING_SIZE] = {0};
@@ -198,8 +103,7 @@ uint8_t read_reg(const uint32_t addr, uint32_t *data)
         printf("%s\n", write_data);
     }
 
-#ifdef USE_SOCKET
-    int data_length = write(socket_fd, write_data, strlen(write_data));
+    data_length = write(socket_fd, write_data, strlen(write_data));
 
     if (data_length == -1)
     {
@@ -211,29 +115,8 @@ uint8_t read_reg(const uint32_t addr, uint32_t *data)
         printf("write incomplete\n");
         return -1;
     }
-#else // UART
-    UART2_SendBuff(write_data, strlen(write_data));
-#endif
 
-#ifdef USE_SOCKET
     readSocket(socket_fd, read_data);
-
-#else // UART
-    cycles = 50000;
-    while (cycles--)
-        ;
-
-    if (ntlRspReceived)
-    {
-        ntlRspReceived = 0;
-        memcpy(read_data, ntlResponseBuff, strlen(ntlResponseBuff));
-    }
-    else
-    {
-
-        UART2_SendBuff("NO RSP\r\n", strlen("NO RSP\r\n"));
-    }
-#endif
 
     if (debug)
     {
@@ -242,7 +125,7 @@ uint8_t read_reg(const uint32_t addr, uint32_t *data)
 
     if (strncmp("$RR,0x", read_data, strlen("$RR,0x")) != 0)
     {
-        // printf("no correct response received\n");
+        printf("no correct response received\n");
         return -1;
     }
 
@@ -271,7 +154,7 @@ uint8_t read_reg(const uint32_t addr, uint32_t *data)
 
     if (strncmp(read_data + offset, temp_data, strlen(temp_data)) != 0)
     {
-        // printf("checksum no matchy\n");
+        printf("checksum no matchy\n");
 
         return -1;
     }
@@ -291,11 +174,11 @@ uint8_t read_reg(const uint32_t addr, uint32_t *data)
 uint8_t write_reg(const uint32_t addr, uint32_t *data)
 {
     int debug = 0;
-    // uint8_t data_length;
+    uint8_t data_length;
     char temp_data[STRING_SIZE] = {0};
     char read_data[STRING_SIZE] = {0};
     char write_data[STRING_SIZE] = {0};
-    uint8_t checksum;
+    char checksum;
     // char temp_string[STRING_SIZE] = {0};
 
     char hexAddr[STRING_SIZE] = {0};
@@ -330,8 +213,7 @@ uint8_t write_reg(const uint32_t addr, uint32_t *data)
         printf("%s\n", write_data);
     }
 
-#ifdef USE_SOCKET
-    int data_length = write(socket_fd, write_data, strlen(write_data));
+    data_length = write(socket_fd, write_data, strlen(write_data));
 
     if (data_length == -1)
     {
@@ -343,28 +225,8 @@ uint8_t write_reg(const uint32_t addr, uint32_t *data)
         printf("write incomplete\n");
         return -1;
     }
-#else // UART
-    UART2_SendBuff(write_data, strlen(write_data));
-#endif
 
-#ifdef USE_SOCKET
     readSocket(socket_fd, read_data);
-#else // UART
-    cycles = 50000;
-    while (cycles--)
-        ;
-
-    if (ntlRspReceived)
-    {
-        ntlRspReceived = 0;
-        memcpy(read_data, ntlResponseBuff, strlen(ntlResponseBuff));
-    }
-    else
-    {
-
-        UART2_SendBuff("NO RSP\r\n", strlen("NO RSP\r\n"));
-    }
-#endif
 
     if (debug)
     {
@@ -373,7 +235,7 @@ uint8_t write_reg(const uint32_t addr, uint32_t *data)
 
     if (strncmp("$WR,0x", read_data, strlen("$WR,0x")) != 0)
     {
-        // printf("no correct response received\n");
+        printf("no correct response received\n");
         return -1;
     }
 
@@ -402,7 +264,7 @@ uint8_t write_reg(const uint32_t addr, uint32_t *data)
 
     if (strncmp(read_data + offset, temp_data, strlen(temp_data)) != 0)
     {
-        // printf("checksum no matchy\n");
+        printf("checksum no matchy\n");
 
         return -1;
     }
@@ -420,3 +282,27 @@ uint8_t write_reg(const uint32_t addr, uint32_t *data)
 }
 
 #endif
+
+void set_nonblocking(int fd)
+{
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags != -1)
+        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+int setup_socket()
+{
+    // setup socket
+    int socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(struct sockaddr_un));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, "/var/lib/ns/ns-serial-mux.sock", sizeof(addr.sun_path) - 1);
+
+    connect(socket_fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un));
+
+    set_nonblocking(socket_fd);
+
+    return socket_fd;
+}

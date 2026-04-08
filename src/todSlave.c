@@ -1,971 +1,526 @@
-
-#include "todSlave.h"
-
-#include "cores.h"
 #include "ntl_uart.h"
+#include "cores.h"
+// #include "uartCircBuff.h"
+#include "stdlib.h"
+#include "string.h"
+#include "stdbool.h"
 
-TOD_SLAVE_T TOD_SLAVE;
+#ifdef NTL_TIME_SERVER
 
-NTL_PROPERTY_T todProperties[TOD_SLAVE_NUM_PROPS] = {
+uint8_t tod_slave_read_values(NTL_TS_T *ntlts)
 
-    [TOD_SLAVE_Version] = {readTodSlaveVersion, readOnly, TOD_SLAVE.Version},
-    [TOD_SLAVE_Protocol] = {readTodSlaveProtocol, writeTodSlaveProtocol, TOD_SLAVE.Protocol},
-    [TOD_SLAVE_Gnss] = {readTodSlaveGnss, writeTodSlaveGnss, TOD_SLAVE.Gnss},
-    [TOD_SLAVE_MsgDisable] = {readTodSlaveMsgDisable, writeTodSlaveMsgDisable, TOD_SLAVE.MsgDisable},
-    [TOD_SLAVE_Correction] = {readTodSlaveCorrection, writeTodSlaveCorrection, TOD_SLAVE.Correction},
-    [TOD_SLAVE_BaudRate] = {readTodSlaveBaudRate, writeTodSlaveBaudRate, TOD_SLAVE.BaudRate},
-    [TOD_SLAVE_InvertedPolarity] = {readTodSlaveInvertedPolarity, writeTodSlaveInvertedPolarity, TOD_SLAVE.InvertedPolarity},
-    [TOD_SLAVE_UtcOffset] = {readTodSlaveUtcOffset, readOnly, TOD_SLAVE.UtcOffset},
-    [TOD_SLAVE_UtcInfoValid] = {readTodSlaveUtcInfoValid, readOnly, TOD_SLAVE.UtcInfoValid},
-    [TOD_SLAVE_LeapAnnounce] = {readTodSlaveLeapAnnounce, readOnly, TOD_SLAVE.LeapAnnounce},
-    [TOD_SLAVE_Leap59] = {readTodSlaveLeap59, readOnly, TOD_SLAVE.Leap59},
-    [TOD_SLAVE_Leap61] = {readTodSlaveLeap61, readOnly, TOD_SLAVE.Leap61},
-    [TOD_SLAVE_LeapInfoValid] = {readTodSlaveLeapInfoValid, readOnly, TOD_SLAVE.LeapInfoValid},
-    [TOD_SLAVE_TimeToLeap] = {readTodSlaveTimeToLeap, readOnly, TOD_SLAVE.TimeToLeap},
-    [TOD_SLAVE_GnssFix] = {readTodSlaveGnssFix, readOnly, TOD_SLAVE.GnssFix},
-    [TOD_SLAVE_GnssFixOk] = {readTodSlaveGnssFixOk, readOnly, TOD_SLAVE.GnssFixOk},
-    [TOD_SLAVE_SpoofingState] = {readTodSlaveSpoofingState, readOnly, TOD_SLAVE.SpoofingState},
-    [TOD_SLAVE_FixAndSpoofingInfoValid] = {readTodSlaveFixAndSpoofingInfoValid, readOnly, TOD_SLAVE.FixAndSpoofingInfoValid},
-    [TOD_SLAVE_JammingLevel] = {readTodSlaveJammingLevel, readOnly, TOD_SLAVE.JammingLevel},
-    [TOD_SLAVE_JammingState] = {readTodSlaveJammingState, readOnly, TOD_SLAVE.JammingState},
-    [TOD_SLAVE_AntennaState] = {readTodSlaveAntennaState, readOnly, TOD_SLAVE.AntennaState},
-    [TOD_SLAVE_AntennaAndJammingInfoValid] = {readTodSlaveAntennaAndJammingInfoValid, readOnly, TOD_SLAVE.AntennaAndJammingInfoValid},
-    [TOD_SLAVE_NrOfSatellitesSeen] = {readTodSlaveNrOfSatellitesSeen, readOnly, TOD_SLAVE.NrOfSatellitesSeen},
-    [TOD_SLAVE_NrOfSatellitesLocked] = {readTodSlaveNrOfSatellitesLocked, readOnly, TOD_SLAVE.NrOfSatellitesLocked},
-    [TOD_SLAVE_NrOfSatellitesInfo] = {readTodSlaveNrOfSatellitesInfo, readOnly, TOD_SLAVE.NrOfSatellitesInfo},
-    [TOD_SLAVE_Enable] = {readTodSlaveEnable, writeTodSlaveEnable, TOD_SLAVE.Enable},
-    [TOD_SLAVE_InputOk] = {readTodSlaveInputOk, readOnly, TOD_SLAVE.InputOk},
-};
-
-
-
-int readTodSlaveVersion(char *version, size_t size)
 {
-    temp_addr = TOD_SLAVE.address_range_low;
+    uint32_t temp_data = 0;
+    uint32_t temp_addr = 0;
 
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_VersionReg, &temp_data))
+    temp_addr = ntlts->todRegs.StartAddr;
+
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
     {
-        snprintf(version, size, "%s", "NA");
-        return -1;
+        // enabled
+        if ((temp_data & 0x00000001) == 0)
+        {
+            ntlts->todSlave.Enable = 0;
+        }
+        else
+        {
+            // ntlts->TodSlaveEnable = 1;;
+            ntlts->todSlave.Enable = 1;
+        }
+
+        // protocol
+        switch ((temp_data >> 28) & 0x7)
+        {
+        case 0:
+            // ntlts->TodSlaveProtocolValue->setCurrentText("NMEA");
+            snprintf(ntlts->todSlave.Protocol, sizeof(ntlts->todSlave.Protocol), "NMEA");
+            break;
+        case 1:
+            // ntlts->TodSlaveProtocolValue->setCurrentText("UBX");
+            snprintf(ntlts->todSlave.Protocol, sizeof(ntlts->todSlave.Protocol), "UBX");
+
+            break;
+        case 2:
+            // ntlts->TodSlaveProtocolValue->setCurrentText("TSIP");
+            snprintf(ntlts->todSlave.Protocol, sizeof(ntlts->todSlave.Protocol), "TSIP");
+
+            break;
+        case 3:
+            // ntlts->TodSlaveProtocolValue->setCurrentText("ESIP");
+            snprintf(ntlts->todSlave.Protocol, sizeof(ntlts->todSlave.Protocol), "ESIP");
+
+            break;
+        default:
+            // ntlts->TodSlaveProtocolValue->setCurrentText("NA");
+            snprintf(ntlts->todSlave.Protocol, sizeof(ntlts->todSlave.Protocol), "NA");
+
+            break;
+        }
+
+        // gnss
+        switch ((temp_data >> 24) & 0xF)
+        {
+        case 0:
+            snprintf(ntlts->todSlave.Gnss, sizeof(ntlts->todSlave.Gnss), "ALL");
+            break;
+        case 1:
+            snprintf(ntlts->todSlave.Gnss, sizeof(ntlts->todSlave.Gnss), "COMBINED");
+            break;
+        case 2:
+            snprintf(ntlts->todSlave.Gnss, sizeof(ntlts->todSlave.Gnss), "GPS");
+            break;
+        case 3:
+            snprintf(ntlts->todSlave.Gnss, sizeof(ntlts->todSlave.Gnss), "GLONASS");
+            break;
+        case 4:
+            snprintf(ntlts->todSlave.Gnss, sizeof(ntlts->todSlave.Gnss), "GALILEO");
+            break;
+        case 5:
+            snprintf(ntlts->todSlave.Gnss, sizeof(ntlts->todSlave.Gnss), "BEIDOU");
+            break;
+        default:
+            snprintf(ntlts->todSlave.Gnss, sizeof(ntlts->todSlave.Gnss), "NA");
+            break;
+        }
+
+        // disabled msg
+        // ntlts->TodSlaveMsgDisableValue->setText(QString("0x%1").arg(((temp_data >> 16) & 0xFF), 2, 16, QLatin1Char('0')));
     }
-    snprintf(version, size, "0x%llx", temp_data);
-    return 0;
-}
-
-int readTodSlaveEnable(char *status, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    // enabled
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
-    {
-        snprintf(status, size, "%s", "err");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x00000001) == 0)
-    {
-        snprintf(status, size, "%s", "disabled");
-    }
-
     else
     {
-        snprintf(status, size, "%s", "enabled");
+        // ntlts->TodSlaveProtocolValue->setCurrentText("NA");
+        snprintf(ntlts->todSlave.Protocol, sizeof(ntlts->todSlave.Protocol), "NA");
+
+        // ntlts->TodSlaveGnssValue->setCurrentText("NA");
+        snprintf(ntlts->todSlave.Gnss, sizeof(ntlts->todSlave.Gnss), "NA");
+
+        // ntlts->TodSlaveMsgDisableValue->setText("NA");
+        // ntlts->TodSlaveEnable = 0;
+        ntlts->todSlave.Enable = 0;
     }
 
-    return 0;
-}
+    // correction
+    // if (0 == read_reg(temp_addr + Ucm_TodSlave_CorrectionReg, &temp_data))
+    //{
+    //    ntlts->TodSlaveCorrectionValue->setText(QString("0x%1").arg(temp_data, 8, 16, QLatin1Char('0')));
+    //}
+    // else
+    //{
+    //    ntlts->TodSlaveCorrectionValue->setText("NA");
+    //}
 
-int readTodSlaveProtocol(char *protocol, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
+    // baud rate
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_UartBaudRateReg, &temp_data))
     {
+        switch (temp_data)
+        {
+        case 0:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("1200");
+            ntlts->todSlave.BaudRate = 1200;
+            break;
+        case 1:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("2400");
+            ntlts->todSlave.BaudRate = 2400;
+            break;
+        case 2:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("4800");
+            ntlts->todSlave.BaudRate = 4800;
+            break;
+        case 3:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("9600");
+            ntlts->todSlave.BaudRate = 9600;
+            break;
+        case 4:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("19200");
+            ntlts->todSlave.BaudRate = 19200;
+            break;
+        case 5:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("38400");
+            ntlts->todSlave.BaudRate = 38400;
+            break;
+        case 6:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("57600");
+            ntlts->todSlave.BaudRate = 57600;
+            break;
+        case 7:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("115200");
+            ntlts->todSlave.BaudRate = 115200;
+            break;
+        case 8:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("230400");
+            ntlts->todSlave.BaudRate = 230400;
+            break;
+        case 9:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("460800");
+            ntlts->todSlave.BaudRate = 460800;
+            break;
+        case 10:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("921600");
+            ntlts->todSlave.BaudRate = 921600;
+            break;
+        case 11:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("1000000");
+            ntlts->todSlave.BaudRate = 1000000;
+            break;
+        case 12:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("2000000");
+            ntlts->todSlave.BaudRate = 2000000;
+            break;
+        default:
+            // ntlts->TodSlaveBaudRateValue->setCurrentText("NA");
+            ntlts->todSlave.BaudRate = 38400;
 
-        snprintf(protocol, size, "%s", "NA");
-        return -1;
+            break;
+        }
     }
-
-    // protocol
-    switch ((temp_data >> 28) & 0x3)
-    {
-    case 0:
-        snprintf(protocol, size, "%s", "NMEA");
-        break;
-    case 1:
-        snprintf(protocol, size, "%s", "UBX");
-        break;
-    case 2:
-        snprintf(protocol, size, "%s", "TSIP");
-        break;
-    case 3:
-    	snprintf(protocol, size, "%s", "ESIP");
-    	break;
-    default:
-        snprintf(protocol, size, "%s", "NA");
-        break;
-    }
-
-    return 0;
-}
-
-int readTodSlaveGnss(char *gnss, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
-    {
-
-        snprintf(gnss, size, "%s", "NA");
-        return -1;
-    }
-
-    // gnss
-    switch ((temp_data >> 24) & 0xF)
-    {
-    case 0:
-        snprintf(gnss, size, "%s", "ALL");
-        break;
-    case 1:
-        snprintf(gnss, size, "%s", "COMBINED");
-        break;
-    case 2:
-        snprintf(gnss, size, "%s", "GPS");
-        break;
-    case 3:
-        snprintf(gnss, size, "%s", "GLONASS");
-        break;
-    case 4:
-        snprintf(gnss, size, "%s", "GALILEO");
-        break;
-    case 5:
-        snprintf(gnss, size, "%s", "BEIDOU");
-        break;
-    default:
-        snprintf(gnss, size, "%s", "NA");
-        break;
-    }
-
-    return 0;
-}
-
-int readTodSlaveMsgDisable(char *msgdisable, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
-    {
-        snprintf(msgdisable, size, "%s", "NA");
-        return -1;
-    }
-
-    // disabled msg
-    snprintf(msgdisable, size, "0x%02lx", ((temp_data >> 16) & 0xFF));
-
-    return 0;
-}
-
-int readTodSlaveCorrection(char *correction, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_CorrectionReg, &temp_data))
-    {
-        snprintf(correction, size, "%s", "NA");
-        return -1;
-    }
-
-    // disabled msg
-    snprintf(correction, size, "0x%08lx", temp_data);
-
-    return 0;
-}
-int readTodSlaveBaudRate(char *baudrate, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_UartBaudRateReg, &temp_data))
-    {
-        snprintf(baudrate, size, "%s", "NA");
-        return -1;
-    }
-
-    switch (temp_data)
-    {
-    case 0:
-        snprintf(baudrate, size, "%s", "1200");
-        break;
-    case 1:
-        snprintf(baudrate, size, "%s", "2400");
-        break;
-    case 2:
-        snprintf(baudrate, size, "%s", "4800");
-        break;
-    case 3:
-        snprintf(baudrate, size, "%s", "9600");
-        break;
-    case 4:
-        snprintf(baudrate, size, "%s", "19200");
-        break;
-    case 5:
-        snprintf(baudrate, size, "%s", "38400");
-        break;
-    case 6:
-        snprintf(baudrate, size, "%s", "57600");
-        break;
-    case 7:
-        snprintf(baudrate, size, "%s", "115200");
-        break;
-    case 8:
-        snprintf(baudrate, size, "%s", "230400");
-        break;
-    case 9:
-        snprintf(baudrate, size, "%s", "460800");
-        break;
-    case 10:
-        snprintf(baudrate, size, "%s", "921600");
-        break;
-    case 11:
-        snprintf(baudrate, size, "%s", "1000000");
-        break;
-    case 12:
-        snprintf(baudrate, size, "%s", "2000000");
-        break;
-    default:
-        snprintf(baudrate, size, "%s", "NA");
-        break;
-    }
-
-    return 0;
-}
-
-int readTodSlaveInvertedPolarity(char *invertedpolarity, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    // invertedpolarity
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_PolarityReg, &temp_data))
-    {
-        snprintf(invertedpolarity, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x00000001) == 0)
-    {
-        snprintf(invertedpolarity, size, "%s", "enabled");
-    }
-
     else
     {
-        snprintf(invertedpolarity, size, "%s", "disabled");
+        // ntlts->TodSlaveBaudRateValue->setCurrentText("NA");
+        ntlts->todSlave.BaudRate = 38400;
     }
 
-    return 0;
-}
-
-int readTodSlaveInputOk(char *inputok, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
+    // polarity
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_PolarityReg, &temp_data))
+    {
+        if ((temp_data & 0x00000001) == 0)
+        {
+            // ntlts->TodSlaveInverted = 1;;
+            ntlts->todSlave.Inverted = 1;
+        }
+        else
+        {
+            // ntlts->TodSlaveInverted = 0;
+            ntlts->todSlave.Inverted = 0;
+        }
+    }
+    else
+    {
+        // ntlts->TodSlaveInverted = 0;
+        ntlts->todSlave.Inverted = 0;
+    }
 
     // input ok
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_StatusReg, &temp_data))
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_StatusReg, &temp_data))
     {
-        snprintf(inputok, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if (temp_data == 0)
-    {
-        snprintf(inputok, size, "%s", "enabled");
-    }
-
-    else
-    {
-        snprintf(inputok, size, "%s", "disabled");
-    }
-
-    // clear after read
-    writeRegister(temp_addr + Ucm_TodSlave_StatusReg, &temp_data);
-    // writeTodSlaveInputOk(temp_addr + Ucm_TodSlave_StatusReg, &temp_data);
-
-    return 0;
-}
-
-int readTodSlaveUtcOffset(char *utcoffset, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    // input ok
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
-    {
-        snprintf(utcoffset, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    snprintf(utcoffset, size, "%d", (signed char)(temp_data & 0xFF));
-
-    return 0;
-}
-int readTodSlaveUtcInfoValid(char *utcinfovalid, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
-    {
-        snprintf(utcinfovalid, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x00000100) == 0)
-    {
-        snprintf(utcinfovalid, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(utcinfovalid, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-int readTodSlaveLeapAnnounce(char *leapannounce, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
-    {
-        snprintf(leapannounce, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x00001000) == 0)
-    {
-        snprintf(leapannounce, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(leapannounce, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-int readTodSlaveLeap59(char *leap59, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
-    {
-        snprintf(leap59, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x00002000) == 0)
-    {
-        snprintf(leap59, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(leap59, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-int readTodSlaveLeap61(char *leap61, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
-    {
-        snprintf(leap61, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x00004000) == 0)
-    {
-        snprintf(leap61, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(leap61, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-int readTodSlaveLeapInfoValid(char *leapinfovalid, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
-    {
-        snprintf(leapinfovalid, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x00010000) == 0)
-    {
-        snprintf(leapinfovalid, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(leapinfovalid, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-int readTodSlaveTimeToLeap(char *timetoleap, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    // input ok
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_TimeToLeapSecondReg, &temp_data))
-    {
-        snprintf(timetoleap, size, "%s", "NA");
-
-        return -1;
-    }
-
-    snprintf(timetoleap, size, "%ld", temp_data);
-
-    return 0;
-}
-
-int readTodSlaveGnssFix(char *gnssfix, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
-    {
-        snprintf(gnssfix, size, "%s", "NA");
-        return -1;
-    }
-
-    // gnss fix
-    switch ((temp_data >> 17) & 0xFF)
-    {
-    case 0:
-        snprintf(gnssfix, size, "%s", "NO FIX");
-        break;
-    case 1:
-        snprintf(gnssfix, size, "%s", "DEAD RECKONING");
-        break;
-    case 2:
-        snprintf(gnssfix, size, "%s", "2D FIX");
-        break;
-    case 3:
-        snprintf(gnssfix, size, "%s", "3D FIX");
-        break;
-    case 4:
-        snprintf(gnssfix, size, "%s", "GNSS & DEAD RECKONING");
-        break;
-    default:
-        snprintf(gnssfix, size, "%s", "NA");
-        break;
-    }
-
-    return 0;
-}
-int readTodSlaveGnssFixOk(char *gnssfixok, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
-    {
-        snprintf(gnssfixok, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x00010000) == 0)
-    {
-        snprintf(gnssfixok, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(gnssfixok, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-int readTodSlaveSpoofingState(char *spoofingstate, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
-    {
-        snprintf(spoofingstate, size, "%s", "NA");
-        return -1;
-    }
-
-    // spoofing state
-    switch ((temp_data >> 25) & 0x3)
-    {
-    case 0:
-        snprintf(spoofingstate, size, "%s", "UNKNOWN");
-        break;
-    case 1:
-        snprintf(spoofingstate, size, "%s", "NO SPOOFING");
-        break;
-    case 2:
-        snprintf(spoofingstate, size, "%s", "SPOOFING");
-        break;
-    default:
-        snprintf(spoofingstate, size, "%s", "NA");
-        break;
-    }
-
-    return 0;
-}
-int readTodSlaveFixAndSpoofingInfoValid(char *fixandspoofinginfovalid, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
-    {
-        snprintf(fixandspoofinginfovalid, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x10000000) == 0)
-    {
-        snprintf(fixandspoofinginfovalid, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(fixandspoofinginfovalid, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-int readTodSlaveJammingLevel(char *jamminglevel, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    // input ok
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
-    {
-        snprintf(jamminglevel, size, "%s", "NA");
-
-        return -1;
-    }
-
-    snprintf(jamminglevel, size, "%ld", ((temp_data >> 5) & 0xFF));
-
-    return 0;
-}
-
-int readTodSlaveJammingState(char *jammingstate, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
-    {
-        snprintf(jammingstate, size, "%s", "NA");
-        return -1;
-    }
-
-    switch ((temp_data >> 3) & 0x3)
-    {
-    case 0:
-        snprintf(jammingstate, size, "%s", "UNKNOWN");
-        break;
-    case 1:
-        snprintf(jammingstate, size, "%s", "NO JAMMING");
-        break;
-    case 2:
-        snprintf(jammingstate, size, "%s", "JAMMING LEVEL WARNING");
-        break;
-    case 3:
-        snprintf(jammingstate, size, "%s", "JAMMING LEVEL CRITICAL");
-        break;
-    default:
-        snprintf(jammingstate, size, "%s", "NA");
-        break;
-    }
-
-    return 0;
-}
-
-int readTodSlaveAntennaState(char *antennastate, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
-    {
-        snprintf(antennastate, size, "%s", "NA");
-        return -1;
-    }
-
-    // antenna state
-    switch ((temp_data >> 0) & 0x7)
-    {
-    case 0:
-        snprintf(antennastate, size, "%s", "INIT");
-        break;
-    case 1:
-        snprintf(antennastate, size, "%s", "DONT KNOW");
-        break;
-    case 2:
-        snprintf(antennastate, size, "%s", "OK");
-        break;
-    case 3:
-        snprintf(antennastate, size, "%s", "SHORT");
-        break;
-    case 4:
-        snprintf(antennastate, size, "%s", "OPEN");
-        break;
-    default:
-        snprintf(antennastate, size, "%s", "NA");
-        break;
-    }
-
-    return 0;
-}
-int readTodSlaveAntennaAndJammingInfoValid(char *antennaandjamminginfovalid, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
-    {
-        snprintf(antennaandjamminginfovalid, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x20000000) == 0)
-    {
-        snprintf(antennaandjamminginfovalid, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(antennaandjamminginfovalid, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-int readTodSlaveNrOfSatellitesSeen(char *nrofsatellitesseen, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    // input ok
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_SatelliteNumber_Reg_Con, &temp_data))
-    {
-        snprintf(nrofsatellitesseen, size, "%s", "NA");
-
-        return -1;
-    }
-
-    snprintf(nrofsatellitesseen, size, "%ld", ((temp_data >> 0) & 0xFF));
-
-    return 0;
-}
-int readTodSlaveNrOfSatellitesLocked(char *nrofsatelliteslocked, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    // input ok
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_SatelliteNumber_Reg_Con, &temp_data))
-    {
-        snprintf(nrofsatelliteslocked, size, "%s", "NA");
-
-        return -1;
-    }
-
-    snprintf(nrofsatelliteslocked, size, "%ld", ((temp_data >> 8) & 0xFF));
-
-    return 0;
-}
-int readTodSlaveNrOfSatellitesInfo(char *nrofsatellitesinfo, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_SatelliteNumber_Reg_Con, &temp_data))
-    {
-        snprintf(nrofsatellitesinfo, size, "%s", "disabled");
-
-        return -1;
-    }
-
-    if ((temp_data & 0x00010000) == 0)
-    {
-        snprintf(nrofsatellitesinfo, size, "%s", "disabled");
-    }
-
-    else
-    {
-        snprintf(nrofsatellitesinfo, size, "%s", "enabled");
-    }
-
-    return 0;
-}
-
-// ===========================================================================================
-// ===========================================================================================
-// ===========================================================================================
-// ===========================================================================================
-// ===========================================================================================
-// ===========================================================================================
-// ===========================================================================================
-
-int writeTodSlaveProtocol(char *protocol, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    int64_t temp_ctrl = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_ctrl))
-    {
-        return -1;
-    }
-
-    temp_data = temp_ctrl & ~0x30000000;
-
-    if (0 == strncmp(protocol, "NMEA", size))
-    {
-        temp_data |= 0x00000000;
-    }
-    else if (0 == strncmp(protocol, "UBX", size))
-    {
-        temp_data |= 0x10000000;
-    }
-    else if (0 == strncmp(protocol, "TSIP", size))
-    {
-        temp_data |= 0x20000000;
+        if (temp_data == 0)
+        {
+            ntlts->todSlave.InputOk = 1;
+            ;
+        }
+        else
+        {
+            ntlts->todSlave.InputOk = 0;
+        }
+
+        // clear after read
+        write_reg(temp_addr + Ucm_TodSlave_StatusReg, &temp_data);
     }
     else
     {
-        temp_data = temp_ctrl;
+        ntlts->todSlave.InputOk = 0;
     }
 
-    if (0 != writeRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
+    // utc status
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_UtcStatusReg, &temp_data))
     {
-        return -1;
-    }
+        // ntlts->todSlave.UtcOffset = ->setText( QString::number(  ((signed char)(temp_data & 0xFF))   )   ) ;
+        ntlts->todSlave.UtcOffset = ((signed char)(temp_data & 0xFF));
+        if ((temp_data & 0x00000100) == 0)
+        {
+            ntlts->todSlave.UtcInfoValid = 0;
+        }
+        else
+        {
+            ntlts->todSlave.UtcInfoValid = 1;
+        }
 
-    return 0;
-}
-
-int writeTodSlaveGnss(char *gnss, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    int64_t temp_ctrl = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_ctrl))
-    {
-        return -1;
-    }
-
-    temp_data = temp_ctrl & ~0x0F000000;
-
-    if (0 == strncmp(gnss, "ALL", size))
-    {
-        temp_data |= 0x00000000;
-    }
-    else if (0 == strncmp(gnss, "COMBINED", size))
-    {
-        temp_data |= 0x01000000;
-    }
-    else if (0 == strncmp(gnss, "GPS", size))
-    {
-        temp_data |= 0x02000000;
-    }
-    else if (0 == strncmp(gnss, "GLONASS", size))
-    {
-        temp_data |= 0x03000000;
-    }
-    else if (0 == strncmp(gnss, "GALILEO", size))
-    {
-        temp_data |= 0x04000000;
-    }
-    else if (0 == strncmp(gnss, "BEIDOU", size))
-    {
-        temp_data |= 0x05000000;
+        // if ((temp_data & 0x00001000) == 0)
+        //{
+        //     ntlts->todSlave.LeapAnnounce = 0;
+        // }
+        // else
+        //{
+        //     ntlts->todSlave.LeapAnnounce = 1;
+        // }
+        //
+        // if ((temp_data & 0x00002000) == 0)
+        //{
+        //    ntlts->todSlave.Leap59 = 0;
+        //}
+        // else
+        //{
+        //    ntlts->todSlave.Leap59 = 1;
+        //}
+        // if ((temp_data & 0x00004000) == 0)
+        //{
+        //    ntlts->todSlave.Leap61 = 0;
+        //}
+        // else
+        //{
+        //    ntlts->todSlave.Leap61 = 1;
+        //}
+        //
+        // if ((temp_data & 0x00010000) == 0)
+        //{
+        //    ntlts->todSlave.LeapInfoValid = 0;
+        //}
+        // else
+        //{
+        //    ntlts->todSlave.LeapInfoValid = 1;
+        //}
     }
     else
     {
-        temp_data |= temp_ctrl & 0x0F000000;
+        /// ntlts->todSlave.UtcOffset->setText("NA");
+        ntlts->todSlave.UtcInfoValid = 0;
+        // ntlts->todSlave.LeapAnnounce = 0;
+        // ntlts->todSlave.Leap59 = 0;
+        // ntlts->todSlave.Leap61 = 0;
+        // ntlts->todSlave.LeapInfoValid = 0;
     }
 
-    if (0 != writeRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
-    {
-        return -1;
-    }
+    // time to leap second
+    // if (0 == read_reg(temp_addr + Ucm_TodSlave_TimeToLeapSecondReg, &temp_data))
+    //{
+    //    ntlts->todSlave.TimeToLeapValue->setText(QString::number(((signed int)(temp_data))));
+    //}
+    // else
+    //{
+    //    ntlts->todSlave.TimeToLeapValue->setText("NA");
+    //}
 
-    return 0;
-}
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_GnssStatus_Reg_Con, &temp_data))
+    {
+        // gnss fix ok
+        if ((temp_data & 0x00010000) == 0)
+        {
+            ntlts->todSlave.GnssFix = 0;
+        }
+        else
+        {
+            ntlts->todSlave.GnssFix = 1;
+        }
 
-int writeTodSlaveMsgDisable(char *msgdisable, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
+        // gnss fix
+        switch ((temp_data >> 17) & 0xFF)
+        {
+        case 0:
+            // ntlts->todSlave.GnssFixValue->setCurrentText("NO FIX");
+            snprintf(ntlts->todSlave.GnssFixType, sizeof(ntlts->todSlave.GnssFixType), "NO FIX");
+            break;
+        case 1:
+            // ntlts->todSlave.GnssFixValue->setCurrentText("DEAD RECKONING");
+            snprintf(ntlts->todSlave.GnssFixType, sizeof(ntlts->todSlave.GnssFixType), "DEAD RECKONING");
+            break;
+        case 2:
+            // ntlts->todSlave.GnssFixValue->setCurrentText("2D FIX");
+            snprintf(ntlts->todSlave.GnssFixType, sizeof(ntlts->todSlave.GnssFixType), "2D FIX");
+            break;
+        case 3:
+            // ntlts->todSlave.GnssFixValue->setCurrentText("3D FIX");
+            snprintf(ntlts->todSlave.GnssFixType, sizeof(ntlts->todSlave.GnssFixType), "3D FIX");
+            break;
+        case 4:
+            // ntlts->todSlave.GnssFixValue->setCurrentText("GNSS & DEAD RECKONING");
+            snprintf(ntlts->todSlave.GnssFixType, sizeof(ntlts->todSlave.GnssFixType), "GNSS & DEAD RECKONING");
+            break;
+        default:
+            // ntlts->todSlave.GnssFixValue->setCurrentText("NA");
+            snprintf(ntlts->todSlave.GnssFixType, sizeof(ntlts->todSlave.GnssFixType), "NA");
+            break;
+        }
 
-    int64_t temp_ctrl = 0x00000000;
-
-    if (0 != readRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_ctrl))
-    {
-        return -1;
-    }
-
-    temp_data = temp_ctrl & ~0x00FF0000;
-
-    temp_data |= ((strtol(msgdisable, NULL, 16) & 0xFF) << 16);
-
-    if (0 != writeRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
-    {
-        return -1;
-    }
-
-    return 0;
-}
-
-int writeTodSlaveCorrection(char *correction, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-    long temp_correction = 0;
-    correction = &correction[2];
-    temp_correction = strtol(correction, NULL, 16);
-    temp_data |= temp_correction;
-
-    if (0 != writeRegister(temp_addr + Ucm_TodSlave_CorrectionReg, &temp_data))
-    {
-        return -1;
-    }
-
-    return 0;
-}
-
-int writeTodSlaveBaudRate(char *baudrate, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    if (0 == strncmp(baudrate, "1200", size))
-    {
-        temp_data = 0x00000000;
-    }
-    else if (0 == strncmp(baudrate, "2400", size))
-    {
-        temp_data = 0x0000001;
-    }
-    else if (0 == strncmp(baudrate, "4800", size))
-    {
-        temp_data = 0x00000002;
-    }
-    else if (0 == strncmp(baudrate, "9600", size))
-    {
-        temp_data = 0x00000003;
-    }
-    else if (0 == strncmp(baudrate, "19200", size))
-    {
-        temp_data = 0x00000004;
-    }
-    else if (0 == strncmp(baudrate, "38400", size))
-    {
-        temp_data = 0x00000005;
-    }
-    else if (0 == strncmp(baudrate, "57600", size))
-    {
-        temp_data = 0x00000006;
-    }
-    else if (0 == strncmp(baudrate, "115200", size))
-    {
-        temp_data = 0x00000007;
-    }
-    else if (0 == strncmp(baudrate, "230400", size))
-    {
-        temp_data = 0x00000008;
-    }
-    else if (0 == strncmp(baudrate, "460800", size))
-    {
-        temp_data = 0x00000009;
-    }
-    else if (0 == strncmp(baudrate, "921600", size))
-    {
-        temp_data = 0x000000A;
-    }
-    else if (0 == strncmp(baudrate, "1000000", size))
-    {
-        temp_data = 0x0000000B;
-    }
-    else if (0 == strncmp(baudrate, "2000000", size))
-    {
-        temp_data = 0x0000000C;
+        // spoofing state
+        // switch ((temp_data >> 25) & 0x3)
+        //{
+        // case 0:
+        //    ntlts->todSlave.SpoofingStateValue->setCurrentText("UNKNOWN");
+        //    break;
+        // case 1:
+        //    ntlts->todSlave.SpoofingStateValue->setCurrentText("NO SPOOFING");
+        //    break;
+        // case 2:
+        //    ntlts->todSlave.SpoofingStateValue->setCurrentText("SPOOFING");
+        //    break;
+        // default:
+        //    ntlts->todSlave.SpoofingStateValue->setCurrentText("NA");
+        //    break;
+        //}
+        //
+        //// fix and spoofing valid
+        // if ((temp_data & 0x10000000) == 0)
+        //{
+        //     ntlts->todSlave.FixAndSpoofingInfoValid = 0;
+        // }
+        // else
+        //{
+        //     ntlts->todSlave.FixAndSpoofingInfoValid = 1;
+        //     ;
+        // }
+        //
+        //// jamming level
+        // ntlts->todSlave.JammingLevelValue->setText(QString::number(((temp_data >> 5) & 0xFF)));
+        //
+        //// jamming state
+        // switch ((temp_data >> 3) & 0x3)
+        //{
+        // case 0:
+        //     ntlts->todSlave.JammingStateValue->setCurrentText("UNKNOWN");
+        //     break;
+        // case 1:
+        //     ntlts->todSlave.JammingStateValue->setCurrentText("NO JAMMING");
+        //     break;
+        // case 2:
+        //     ntlts->todSlave.JammingStateValue->setCurrentText("JAMMING LEVEL WARNING");
+        //     break;
+        // case 3:
+        //     ntlts->todSlave.JammingStateValue->setCurrentText("JAMMING LEVEL CRITICAL");
+        //     break;
+        // default:
+        //     ntlts->todSlave.JammingStateValue->setCurrentText("NA");
+        //     break;
+        // }
+        //
+        // antenna state
+        //    switch ((temp_data >> 0) & 0x7)
+        //    {
+        //    case 0:
+        //        ntlts->todSlave.AntennaStateValue->setCurrentText("INIT");
+        //        break;
+        //    case 1:
+        //        ntlts->todSlave.AntennaStateValue->setCurrentText("DONT KNOW");
+        //        break;
+        //    case 2:
+        //        ntlts->todSlave.AntennaStateValue->setCurrentText("OK");
+        //        break;
+        //    case 3:
+        //        ntlts->todSlave.AntennaStateValue->setCurrentText("SHORT");
+        //        break;
+        //    case 4:
+        //        ntlts->todSlave.AntennaStateValue->setCurrentText("OPEN");
+        //        break;
+        //    default:
+        //        ntlts->todSlave.AntennaStateValue->setCurrentText("NA");
+        //        break;
+        //    }
+        //
+        //    // antenna & jamming valid
+        //    if ((temp_data & 0x20000000) == 0)
+        //    {
+        //        ntlts->todSlave.AntennaAndJammingInfoValid = 0;
+        //    }
+        //    else
+        //    {
+        //        ntlts->todSlave.AntennaAndJammingInfoValid = 1;
+        //
+        //    }
     }
     else
     {
-        temp_data = 0x00000000;
+        // ntlts->todSlave.GnssFixValue->setCurrentText("NA");
+        snprintf(ntlts->todSlave.GnssFixType, sizeof(ntlts->todSlave.GnssFixType), "NA");
+        ntlts->todSlave.GnssFix = 0;
+        // ntlts->todSlave.SpoofingStateValue->setCurrentText("NA");
+        // ntlts->todSlave.FixAndSpoofingInfoValid = 0;
+        // ntlts->todSlave.JammingLevelValue->setText("NA");
+        // ntlts->todSlave.JammingStateValue->setCurrentText("NA");
+        // ntlts->todSlave.AntennaStateValue->setCurrentText("NA");
+        // ntlts->todSlave.AntennaAndJammingInfoValid = 0;
     }
 
-    if (0 != writeRegister(temp_addr + Ucm_TodSlave_UartBaudRateReg, &temp_data))
+    // nr of satelites
+    // if (0 == read_reg(temp_addr + Ucm_TodSlave_SatelliteNumber_Reg_Con, &temp_data))
+    //{
+    //    ntlts->todSlave.NrOfSatellitesSeenValue->setText(QString::number(((temp_data >> 0) & 0xFF)));
+    //    ntlts->todSlave.NrOfSatellitesLockedValue->setText(QString::number(((temp_data >> 8) & 0xFF)));
+    //
+    //    // valid
+    //    if ((temp_data & 0x00010000) == 0)
+    //    {
+    //        ntlts->todSlave.NrOfSatellitesInfo = 0;
+    //    }
+    //    else
+    //    {
+    //        ntlts->todSlave.NrOfSatellitesInfo = 1;
+    //        ;
+    //    }
+    //
+    //    nr_of_satellites = (temp_data >> 0) & 0xFF;
+    //    nr_of_satellites_locked = (temp_data >> 8) & 0xFF;
+    //
+    //    if (true == tod_slave_timer->isActive())
+    //    {
+    //
+    //        tod_slave_nr_of_satellites_series->append(tod_slave_satellites_number_of_points, nr_of_satellites);
+    //        tod_slave_nr_of_satellites_locked_series->append(tod_slave_satellites_number_of_points, nr_of_satellites_locked);
+    //
+    //        if (tod_slave_satellites_number_of_points < 50)
+    //        {
+    //            tod_slave_satellites_number_of_points++;
+    //        }
+    //        else
+    //        {
+    //            for (int j = 1; j < tod_slave_nr_of_satellites_series->count(); j++)
+    //            {
+    //                QPointF temp_point;
+    //
+    //                temp_point = tod_slave_nr_of_satellites_series->at(j);
+    //                tod_slave_nr_of_satellites_series->replace(j, (j - 1), temp_point.y());
+    //                temp_point = tod_slave_nr_of_satellites_locked_series->at(j);
+    //                tod_slave_nr_of_satellites_locked_series->replace(j, (j - 1), temp_point.y());
+    //            }
+    //            tod_slave_nr_of_satellites_series->remove(0);
+    //            tod_slave_nr_of_satellites_locked_series->remove(0);
+    //        }
+    //
+    //        temp_max = 0;
+    //        for (int j = 0; j < tod_slave_nr_of_satellites_series->count(); j++)
+    //        {
+    //            QPointF temp_point = tod_slave_nr_of_satellites_series->at(j);
+    //            if (temp_max < temp_point.y())
+    //            {
+    //                temp_max = temp_point.y();
+    //            }
+    //        }
+    //        if ((temp_max % 10) <= 5)
+    //        {
+    //            temp_max += (10 - (temp_max % 10));
+    //        }
+    //        else
+    //        {
+    //            temp_max += (20 - (temp_max % 10));
+    //        }
+    //        if (temp_max > 260)
+    //        {
+    //            temp_max = 260;
+    //        }
+    //        tod_slave_satellites_chart->axisY()->setMin(0);
+    //        tod_slave_satellites_chart->axisY()->setMax(temp_max);
+    //
+    //        tod_slave_satellites_chart->show();
+    //    }
+    //}
+    // else
+    //{
+    //    ntlts->todSlave.NrOfSatellitesSeenValue->setText("NA");
+    //    ntlts->todSlave.NrOfSatellitesLockedValue->setText("NA");
+    //    ntlts->todSlave.NrOfSatellitesInfo = 0;
+    //}
+
+    // version
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_VersionReg, &temp_data))
     {
-        return -1;
+        // ntlts->todSlave.VersionValue->setText(QString("0x%1").arg(temp_data, 8, 16, QLatin1Char('0')));
+        ntlts->todSlave.Version = temp_data;
+    }
+    else
+    {
+        // ntlts->todSlave.VersionValue->setText("NA");
     }
 
     return 0;
 }
 
-int writeTodSlaveInvertedPolarity(char *inverted, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
+uint8_t tod_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters) { return 0; }
 
-    if (0 == strncmp(inverted, "disabled", size))
-    {
-        temp_data |= 0x00000001; // no inversion
-    }
-
-    if (0 != writeRegister(temp_addr + Ucm_TodSlave_PolarityReg, &temp_data))
-    {
-        return -1;
-    }
-    return 0;
-}
-
-int writeTodSlaveEnable(char *enable, size_t size)
-{
-    temp_addr = TOD_SLAVE.address_range_low;
-    temp_data = 0x00000000;
-
-    temp_data &= ~0x0000000F;
-
-    if (0 == strncmp(enable, "enabled", size))
-    {
-        temp_data |= 0x00000001;
-    }
-
-    if (0 != writeRegister(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
-    {
-        return -1;
-    }
-    return 0;
-}
+#endif
