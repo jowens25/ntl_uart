@@ -7,7 +7,7 @@
 
 #ifdef NTL_TIME_SERVER
 
-uint8_t ntp_server_read_values(NTL_TS_T *ntlts)
+int8_t ntp_server_read_values(NTL_TS_T *ntlts)
 {
 
     uint32_t temp_data = 0;
@@ -63,7 +63,7 @@ uint8_t ntp_server_read_values(NTL_TS_T *ntlts)
     {
         snprintf(ntlts->ntpServer.MacAddr, sizeof(ntlts->ntpServer.MacAddr), "%s", "NA");
 
-        return -1;
+        return -2;
     }
 
     ntlts->ntpRegs.ConfigMac2Reg = temp_data;
@@ -599,7 +599,7 @@ uint8_t ntp_server_read_values(NTL_TS_T *ntlts)
     return 0;
 }
 
-uint8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
+int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 {
 
     uint32_t temp_data = 0;
@@ -673,11 +673,13 @@ uint8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         else
         {
             // ui->NtpServerMacValue->setText("NA");
+            return -2;
         }
     }
     else
     {
         // ui->NtpServerMacValue->setText("NA");
+        return -3;
     }
 
     // vlan
@@ -780,10 +782,12 @@ uint8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         }
         else
         {
+            return -4;
         }
     }
     else
     {
+        return -6;
     }
 
     temp_data = 0x00000000;
@@ -796,7 +800,7 @@ uint8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         token = (i == 0) ? strtok(referenceOptions, ",") : strtok(NULL, ",");
         if (token == NULL)
         {
-            return -1;
+            return -5;
         }
 
         if (0 == strncmp(token, ntlts->ntpServer.referenceId, strlen(ntlts->ntpServer.referenceId)))
@@ -867,7 +871,7 @@ uint8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     if (strncmp(ntlts->ntpServer.ipMode, "IPv4", strlen("IPv4")) == 0)
     {
 
-        long temp_ip[4] = {0};
+        int32_t temp_ip[4] = {0};
 
         char *token;
         for (int i = 0; i < 4; i++)
@@ -932,7 +936,7 @@ uint8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
             temp_ip6[i] = strtol(byte, &err, 16);
             if (err == token || *err != '\0')
             {
-                return -1;
+                return -77;
             }
 
             // Extract next two characters
@@ -941,7 +945,7 @@ uint8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
             temp_ip6[i + 1] = strtol(byte, &err, 16);
             if (err == token || *err != '\0')
             {
-                return -1;
+                return -88;
             }
         }
 

@@ -7,7 +7,7 @@
 
 #ifdef NTL_TIME_SERVER
 
-uint8_t pps_slave_read_values(NTL_TS_T *ntlts)
+int8_t pps_slave_read_values(NTL_TS_T *ntlts)
 {
 
     int32_t temp_delay = 0;
@@ -107,6 +107,94 @@ uint8_t pps_slave_read_values(NTL_TS_T *ntlts)
 
     return 0;
 }
-uint8_t pps_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters) { return 0; }
+int8_t pps_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
+
+{
+    uint32_t temp_data = 0;
+    uint32_t temp_addr = 0;
+    temp_addr = ntlts->ppsRegs.StartAddr;
+
+    // cable delay
+    // temp_string = ui->PpsSlaveCableDelayValue->text();
+    // temp_delay = temp_string.toInt(nullptr, 10);
+
+    int temp_delay = ntlts->ppsSlave.CableDelay;
+
+    if (false)
+    // if (temp_string == "NA")
+    {
+        // nothing
+    }
+    else
+    {
+        temp_data = abs(temp_delay) & 0x3FFFFFFF;
+        if (temp_delay < 0)
+        {
+            temp_data |= 0x80000000; // set sign bit
+        }
+
+        if (fromRegisters)
+        {
+            temp_data = ntlts->ppsRegs.CableDelayReg;
+        }
+
+        if (0 == write_reg(temp_addr + Ucm_PpsSlave_CableDelayReg, &temp_data))
+        {
+            // ui->PpsSlaveCableDelayValue->setText(QString::number(temp_delay));
+        }
+        else
+        {
+            // ui->PpsSlaveCableDelayValue->setText("NA");
+            return -1;
+        }
+    }
+
+    // polarity
+    temp_data = 0x00000000; // nothing
+    // if (false == ui->PpsSlaveInvertedCheckBox->isChecked())
+    if (ntlts->ppsSlave.Inverted == 0)
+    {
+        temp_data |= 0x00000001; // no inversion
+    }
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->ppsRegs.PolarityReg;
+    }
+
+    if (0 == write_reg(temp_addr + Ucm_PpsSlave_PolarityReg, &temp_data))
+    {
+        // nothing
+    }
+    else
+    {
+        // ui->PpsSlaveInvertedCheckBox->setChecked(false);
+        return -2;
+    }
+
+    temp_data = 0x00000000; // nothing
+    // if (true == ui->PpsSlaveEnableCheckBox->isChecked())
+    if (ntlts->ppsSlave.Enable)
+    {
+        temp_data |= 0x00000001; // enable
+    }
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->ppsRegs.ControlReg;
+    }
+
+    if (0 == write_reg(temp_addr + Ucm_PpsSlave_ControlReg, &temp_data))
+    {
+        // nothing
+    }
+    else
+    {
+        // ui->PpsSlaveEnableCheckBox->setChecked(false);
+        return -3;
+    }
+
+    return 0;
+}
 
 #endif

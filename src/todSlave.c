@@ -7,7 +7,7 @@
 
 #ifdef NTL_TIME_SERVER
 
-uint8_t tod_slave_read_values(NTL_TS_T *ntlts)
+int8_t tod_slave_read_values(NTL_TS_T *ntlts)
 
 {
     uint32_t temp_data = 0;
@@ -100,14 +100,15 @@ uint8_t tod_slave_read_values(NTL_TS_T *ntlts)
     }
 
     // correction
-    // if (0 == read_reg(temp_addr + Ucm_TodSlave_CorrectionReg, &temp_data))
-    //{
-    //    ntlts->TodSlaveCorrectionValue->setText(QString("0x%1").arg(temp_data, 8, 16, QLatin1Char('0')));
-    //}
-    // else
-    //{
-    //    ntlts->TodSlaveCorrectionValue->setText("NA");
-    //}
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_CorrectionReg, &temp_data))
+    {
+        // ntlts->TodSlaveCorrectionValue->setText(QString("0x%1").arg(temp_data, 8, 16, QLatin1Char('0')));
+        ntlts->todSlave.Correction = temp_data;
+    }
+    else
+    {
+        // ntlts->TodSlaveCorrectionValue->setText("NA");
+    }
 
     // baud rate
     if (0 == read_reg(temp_addr + Ucm_TodSlave_UartBaudRateReg, &temp_data))
@@ -521,6 +522,288 @@ uint8_t tod_slave_read_values(NTL_TS_T *ntlts)
     return 0;
 }
 
-uint8_t tod_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters) { return 0; }
+int8_t tod_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
+
+// void Ucm_TodSlaveTab::tod_slave_write_values(void)
+{
+    uint32_t temp_data = 0;
+    uint32_t temp_addr = 0;
+    uint32_t temp_ctrl = 0;
+    // uint8_t temp_string[STRING_SIZE] = {0};
+
+    temp_addr = ntlts->todRegs.StartAddr;
+
+    // correction
+    // temp_string = ui->TodSlaveCorrectionValue->text();
+    // temp_data = temp_string.toUInt(nullptr, 16);
+
+    temp_data = ntlts->todSlave.Correction;
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->todRegs.CorrectionReg;
+    }
+
+    // if (temp_string == "NA")
+    if (false)
+    {
+        // nothing
+    }
+    else if (0 == write_reg(temp_addr + Ucm_TodSlave_CorrectionReg, &temp_data))
+    {
+        /// ui->TodSlaveCorrectionValue->setText(QString("0x%1").arg(temp_data, 8, 16, QLatin1Char('0')));
+    }
+    else
+    {
+        // ui->TodSlaveCorrectionValue->setText("NA");
+        return -1;
+    }
+
+    // baud rate
+    // temp_string = ui->TodSlaveBaudRateValue->currentText();
+
+    if (ntlts->todSlave.BaudRate == 1200)
+    {
+        temp_data = 0x00000000;
+    }
+    else if (ntlts->todSlave.BaudRate == 2400)
+    {
+        temp_data = 0x0000001;
+    }
+    else if (ntlts->todSlave.BaudRate == 4800)
+    {
+        temp_data = 0x00000002;
+    }
+    else if (ntlts->todSlave.BaudRate == 9600)
+    {
+        temp_data = 0x00000003;
+    }
+    else if (ntlts->todSlave.BaudRate == 19200)
+    {
+        temp_data = 0x00000004;
+    }
+    else if (ntlts->todSlave.BaudRate == 38400)
+    {
+        temp_data = 0x00000005;
+    }
+    else if (ntlts->todSlave.BaudRate == 57600)
+    {
+        temp_data = 0x00000006;
+    }
+    else if (ntlts->todSlave.BaudRate == 115200)
+    {
+        temp_data = 0x00000007;
+    }
+    else if (ntlts->todSlave.BaudRate == 230400)
+    {
+        temp_data = 0x00000008;
+    }
+    else if (ntlts->todSlave.BaudRate == 460800)
+    {
+        temp_data = 0x00000009;
+    }
+    else if (ntlts->todSlave.BaudRate == 921600)
+    {
+        temp_data = 0x000000A;
+    }
+    else if (ntlts->todSlave.BaudRate == 1000000)
+    {
+        temp_data = 0x0000000B;
+    }
+    else if (ntlts->todSlave.BaudRate == 2000000)
+    {
+        temp_data = 0x0000000C;
+    }
+    else
+    {
+        temp_data = 0x00000000;
+    }
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->todRegs.UartBaudRateReg;
+    }
+
+    if (false)
+    {
+        // nothing
+    }
+    else if (0 == write_reg(temp_addr + Ucm_TodSlave_UartBaudRateReg, &temp_data))
+    {
+        // switch (temp_data)
+        //{
+        // case 0:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("1200");
+        //     break;
+        // case 1:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("2400");
+        //     break;
+        // case 2:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("4800");
+        //     break;
+        // case 3:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("9600");
+        //     break;
+        // case 4:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("19200");
+        //     break;
+        // case 5:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("38400");
+        //     break;
+        // case 6:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("57600");
+        //     break;
+        // case 7:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("115200");
+        //     break;
+        // case 8:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("230400");
+        //     break;
+        // case 9:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("460800");
+        //     break;
+        // case 10:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("921600");
+        //     break;
+        // case 11:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("1000000");
+        //     break;
+        // case 12:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("2000000");
+        //     break;
+        // default:
+        //     ui->TodSlaveBaudRateValue->setCurrentText("NA");
+        //     break;
+        // }
+    }
+    else
+    {
+        // ui->TodSlaveBaudRateValue->setCurrentText("NA");
+        return -2;
+    }
+
+    // polarity
+    temp_data = 0x00000000; // nothing
+    // if (false == ui->TodSlaveInvertedCheckBox->isChecked())
+    if (ntlts->todSlave.Inverted == 0)
+    {
+        temp_data |= 0x00000001; // no inversion
+    }
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->todRegs.PolarityReg;
+    }
+
+    if (0 == write_reg(temp_addr + Ucm_TodSlave_PolarityReg, &temp_data))
+    {
+        // nothing
+    }
+    else
+    {
+        // ui->TodSlaveInvertedCheckBox->setChecked(false);
+        return -3;
+    }
+
+    // control
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_ControlReg, &temp_ctrl))
+    {
+        // nothing
+    }
+
+    // nothing
+    temp_data = 0x00000000;
+    // protocol
+    // temp_string = ui->TodSlaveProtocolValue->currentText();
+
+    // if (temp_string == "NMEA")
+    if (strncmp(ntlts->todSlave.Protocol, "NMEA", strlen("NMEA")) == 0)
+    {
+        temp_data |= 0x00000000;
+    }
+    // else if (temp_string == "UBX")
+    else if (strncmp(ntlts->todSlave.Protocol, "UBX", strlen("UBX")) == 0)
+    {
+        temp_data |= 0x10000000;
+    }
+    // else if (temp_string == "TSIP")
+    else if (strncmp(ntlts->todSlave.Protocol, "TSIP", strlen("TSIP")) == 0)
+
+    {
+        temp_data |= 0x20000000;
+    }
+    // else if (temp_string == "ESIP")
+    else if (strncmp(ntlts->todSlave.Protocol, "ESIP", strlen("ESIP")) == 0)
+
+    {
+        temp_data |= 0x30000000;
+    }
+    else
+    {
+        temp_data |= temp_ctrl & 0x00000000;
+    }
+
+    // gnss
+    // temp_string = ui->TodSlaveGnssValue->currentText();
+
+    if (strncmp(ntlts->todSlave.Gnss, "ALL", strlen("ALL")) == 0)
+    {
+        temp_data |= 0x00000000;
+    }
+    else if (strncmp(ntlts->todSlave.Gnss, "COMBINED", strlen("COMBINED")) == 0)
+    {
+        temp_data |= 0x01000000;
+    }
+    else if (strncmp(ntlts->todSlave.Gnss, "GPS", strlen("GPS")) == 0)
+    {
+        temp_data |= 0x02000000;
+    }
+    else if (strncmp(ntlts->todSlave.Gnss, "GLONASS", strlen("GLONASS")) == 0)
+    {
+        temp_data |= 0x03000000;
+    }
+    else if (strncmp(ntlts->todSlave.Gnss, "GALILEO", strlen("GALILEO")) == 0)
+    {
+        temp_data |= 0x04000000;
+    }
+    else if (strncmp(ntlts->todSlave.Gnss, "BEIDOU", strlen("BEIDOU")) == 0)
+    {
+        temp_data |= 0x05000000;
+    }
+    else
+    {
+        temp_data |= temp_ctrl & 0x0F000000;
+    }
+
+    // msg disable
+    // temp_string = ui->TodSlaveMsgDisableValue->text();
+    // if (temp_string == "NA")
+    // {
+    //     temp_data |= temp_ctrl & 0x00FF0000;
+    // }
+    // else
+    // {
+    //     temp_data |= ((temp_string.toUInt(nullptr, 16) & 0xFF) << 16);
+    // }
+
+    if (ntlts->todSlave.Enable)
+    {
+        temp_data |= 0x00000001; // enable
+    }
+    if (0 == write_reg(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
+    {
+        // nothing
+    }
+    else
+    {
+        return -4;
+        // ui->TodSlaveProtocolValue->setCurrentText("NA");
+        // ui->TodSlaveGnssValue->setCurrentText("NA");
+        // ui->TodSlaveMsgDisableValue->setText("NA");
+        // ui->TodSlaveEnableCheckBox->setChecked(false);
+    }
+
+    return 0;
+}
 
 #endif

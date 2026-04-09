@@ -49,10 +49,10 @@ typedef struct ClkClock
 	int8_t Enable;
 	int32_t Version;
 	double Drift;
-	// int32_t DriftInterval;
+	int32_t DriftInterval;
 	// int32_t DriftAdjCheckBox;
 	int32_t Offset;
-	// int32_t OffsetInterval;
+	int32_t OffsetInterval;
 	// int32_t OffsetAdjCheckBox;
 	// int32_t PiOffsetMulP;
 	// int32_t PiOffsetDivP;
@@ -88,7 +88,7 @@ typedef struct TodSlave
 	char Protocol[8];
 	char Gnss[16];
 	// uint8_t MsgDisable;
-	// uint8_t Correction;
+	uint8_t Correction;
 	uint32_t BaudRate;
 	uint8_t Inverted;
 	int8_t UtcOffset;
@@ -354,20 +354,20 @@ extern struct NTL_TS_T ntlts;
 
 int get_length_by_char(char *myString, char *myChar);
 
-uint8_t clk_clock_read_values(NTL_TS_T *ntlts);
-uint8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
+int8_t clk_clock_read_values(NTL_TS_T *ntlts);
+int8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 
-uint8_t tod_slave_read_values(NTL_TS_T *ntlts);
-uint8_t tod_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
+int8_t tod_slave_read_values(NTL_TS_T *ntlts);
+int8_t tod_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 
-uint8_t pps_slave_read_values(NTL_TS_T *ntlts);
-uint8_t pps_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
+int8_t pps_slave_read_values(NTL_TS_T *ntlts);
+int8_t pps_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 
-uint8_t ptp_oc_read_values(NTL_TS_T *ntlts);
-uint8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
+int8_t ptp_oc_read_values(NTL_TS_T *ntlts);
+int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 
-uint8_t ntp_server_read_values(NTL_TS_T *ntlts);
-uint8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
+int8_t ntp_server_read_values(NTL_TS_T *ntlts);
+int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 
 #include "clkClock.h"
 #include "ntl_uart.h"

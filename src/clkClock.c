@@ -14,7 +14,7 @@
 
 #ifdef NTL_TIME_SERVER
 
-uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
+int8_t clk_clock_read_values(NTL_TS_T *ntlts)
 {
     uint32_t temp_data = 0;
     uint32_t temp_addr = 0;
@@ -27,6 +27,7 @@ uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
     // enabled
     if (0 == read_reg(temp_addr + Ucm_ClkClock_ControlReg, &temp_data))
     {
+        ntlts->clkRegs.ControlReg = temp_data;
         if ((temp_data & 0x00000001) == 0)
         {
             ntlts->clkClock.Enable = 0;
@@ -104,6 +105,8 @@ uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
     // in sync
     if (0 == read_reg(temp_addr + Ucm_ClkClock_StatusReg, &temp_data))
     {
+        ntlts->clkRegs.StatusReg = temp_data;
+
         if ((temp_data & 0x00000001) == 0)
         {
             ntlts->clkClock.InSync = 0;
@@ -132,6 +135,7 @@ uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
     if (0 == read_reg(temp_addr + Ucm_ClkClock_InSyncThresholdReg, &temp_data))
     {
         ntlts->clkClock.InSyncThreshold = temp_data;
+        ntlts->clkRegs.InSyncThresholdReg = temp_data;
     }
     else
     {
@@ -141,6 +145,8 @@ uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
     // offset
     if (0 == read_reg(temp_addr + Ucm_ClkClock_OffsetAdjValueReg, &temp_data))
     {
+        ntlts->clkRegs.OffsetAdjValueReg = temp_data;
+
         int32_t temp_offset = temp_data & 0x7FFFFFFF;
         if ((temp_data & 0x80000000) != 0)
         {
@@ -149,27 +155,30 @@ uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
         // ui->ClkClockOffsetValue->setText(QString::number(temp_offset));
         ntlts->clkClock.Offset = temp_offset;
 
-        //    if (0 == read_reg(temp_addr + Ucm_ClkClock_OffsetAdjIntervalReg, &temp_data))
-        //    {
-        //        ui->ClkClockOffsetIntervalValue->setText(QString::number(temp_data));
-        //    }
-        //    else
-        //    {
-        //        ui->ClkClockOffsetValue->setText("NA");
-        //        ui->ClkClockOffsetIntervalValue->setText("NA");
-        //        ui->ClkClockOffsetAdjCheckBox->setChecked(false);
-        //    }
-        //}
-        // else
-        //{
-        //    ui->ClkClockOffsetValue->setText("NA");
-        //    ui->ClkClockOffsetIntervalValue->setText("NA");
-        //    ui->ClkClockOffsetAdjCheckBox->setChecked(false);
-        //}
+        if (0 == read_reg(temp_addr + Ucm_ClkClock_OffsetAdjIntervalReg, &temp_data))
+        {
+            // ui->ClkClockOffsetIntervalValue->setText(QString::number(temp_data));
+            ntlts->clkClock.OffsetInterval = temp_data;
+        }
+        else
+        {
+            // ui->ClkClockOffsetValue->setText("NA");
+            // ui->ClkClockOffsetIntervalValue->setText("NA");
+            // ui->ClkClockOffsetAdjCheckBox->setChecked(false);
+        }
     }
+    else
+    {
+        // ui->ClkClockOffsetValue->setText("NA");
+        // ui->ClkClockOffsetIntervalValue->setText("NA");
+        // ui->ClkClockOffsetAdjCheckBox->setChecked(false);
+    }
+
     // drift
     if (0 == read_reg(temp_addr + Ucm_ClkClock_DriftAdjValueReg, &temp_data))
     {
+        ntlts->clkRegs.DriftAdjValueReg = temp_data;
+
         bool is_negative = temp_data & 0x80000000;
         if (is_negative != 0)
         {
@@ -182,6 +191,8 @@ uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
 
         if (0 == read_reg(temp_addr + Ucm_ClkClock_DriftAdjFractionsReg, &temp_data))
         {
+            // ntlts->clkRegs.StatusDriftFractionsReg = temp_data;
+
             double temp_fract;
             double temp_fract_drift;
             temp_fract = (double)temp_data;
@@ -199,27 +210,29 @@ uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
             // ui->ClkClockDriftValue->setText(QString::number(temp_drift));
         }
 
-        //     if (0 == read_reg(temp_addr + Ucm_ClkClock_DriftAdjIntervalReg, &temp_data))
-        //     {
-        //         ui->ClkClockDriftIntervalValue->setText(QString::number(temp_data));
-        //     }
-        //     else
-        //     {
-        //         ui->ClkClockDriftValue->setText("NA");
-        //         ui->ClkClockDriftIntervalValue->setText("NA");
-        //         ui->ClkClockDriftAdjCheckBox->setChecked(false);
-        //     }
-        // }
-        // else
-        // {
-        //     ui->ClkClockDriftValue->setText("NA");
-        //     ui->ClkClockDriftIntervalValue->setText("NA");
-        //     ui->ClkClockDriftAdjCheckBox->setChecked(false);
-        // }
+        if (0 == read_reg(temp_addr + Ucm_ClkClock_DriftAdjIntervalReg, &temp_data))
+        {
+            // ui->ClkClockDriftIntervalValue->setText(QString::number(temp_data));
+            ntlts->clkClock.DriftInterval = temp_data;
+        }
+        else
+        {
+            // ui->ClkClockDriftValue->setText("NA");
+            // ui->ClkClockDriftIntervalValue->setText("NA");
+            // ui->ClkClockDriftAdjCheckBox->setChecked(false);
+        }
     }
+    else
+    {
+        // ui->ClkClockDriftValue->setText("NA");
+        // ui->ClkClockDriftIntervalValue->setText("NA");
+        // ui->ClkClockDriftAdjCheckBox->setChecked(false);
+    }
+
     // source
     if (0 == read_reg(temp_addr + Ucm_ClkClock_SelectReg, &temp_data))
     {
+        ntlts->clkRegs.SelectReg = temp_data;
         switch ((temp_data >> 16) & 0x0000FFFF)
         {
         case 0x00000000:
@@ -279,6 +292,8 @@ uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
     // corrected offset
     if (0 == read_reg(temp_addr + Ucm_ClkClock_StatusOffsetReg, &temp_data))
     {
+        ntlts->clkRegs.StatusOffsetReg = temp_data;
+
         if ((temp_data & 0x80000000) != 0)
         {
             temp_offset = -1 * (temp_data & 0x7FFFFFFF);
@@ -316,6 +331,8 @@ uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
     // corrected drift
     if (0 == read_reg(temp_addr + Ucm_ClkClock_StatusDriftReg, &temp_data))
     {
+        ntlts->clkRegs.StatusDriftReg = temp_data;
+
         if ((temp_data & 0x80000000) != 0)
         {
             temp_drift = -1 * (temp_data & 0x7FFFFFFF);
@@ -364,52 +381,56 @@ uint8_t clk_clock_read_values(NTL_TS_T *ntlts)
     return 0;
 }
 
-/*
+// void clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
+int8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 
-uint8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 {
+
     uint32_t temp_data = 0;
     uint32_t temp_addr = 0;
 
+    temp_addr = ntlts->clkRegs.StartAddr;
+
     // source
-    // temp_string = ntlts->clkClock.Source->currentText();
-    if (strncmp(ntlts->clkClock.Source, "NONE", sizeof("NONE")) == 0)
+    // temp_string = ui->ClkClockSourceValue->currentText();
+    // if (temp_string == "NONE")
+    if (strncmp(ntlts->clkClock.Source, "NONE", strlen("NONE")) == 0)
     {
         temp_data = 0x00000000;
     }
-    else if (strncmp(ntlts->clkClock.Source, "TOD", sizeof("TOD")) == 0)
+    else if (strncmp(ntlts->clkClock.Source, "TOD", strlen("TOD")) == 0)
     {
         temp_data = 0x00000001;
     }
-    else if (strncmp(ntlts->clkClock.Source, "IRIG", sizeof("IRIG")) == 0)
+    else if (strncmp(ntlts->clkClock.Source, "IRIG", strlen("IRIG")) == 0)
     {
         temp_data = 0x00000002;
     }
-    else if (strncmp(ntlts->clkClock.Source, "PPS", sizeof("PPS")) == 0)
+    else if (strncmp(ntlts->clkClock.Source, "PPS", strlen("PPS")) == 0)
     {
         temp_data = 0x00000003;
     }
-    else if (strncmp(ntlts->clkClock.Source, "PTP", sizeof("PTP")) == 0)
+    else if (strncmp(ntlts->clkClock.Source, "PTP", strlen("PTP")) == 0)
     {
         temp_data = 0x00000004;
     }
-    else if (strncmp(ntlts->clkClock.Source, "RTC", sizeof("RTC")) == 0)
+    else if (strncmp(ntlts->clkClock.Source, "RTC", strlen("RTC")) == 0)
     {
         temp_data = 0x00000005;
     }
-    else if (strncmp(ntlts->clkClock.Source, "DCF", sizeof("DCF")) == 0)
+    else if (strncmp(ntlts->clkClock.Source, "DCF", strlen("DCF")) == 0)
     {
         temp_data = 0x00000006;
     }
-    else if (strncmp(ntlts->clkClock.Source, "NTP", sizeof("NTP")) == 0)
+    else if (strncmp(ntlts->clkClock.Source, "NTP", strlen("NTP")) == 0)
     {
         temp_data = 0x00000007;
     }
-    else if (strncmp(ntlts->clkClock.Source, "REG", sizeof("REG")) == 0)
+    else if (strncmp(ntlts->clkClock.Source, "REG", strlen("REG")) == 0)
     {
         temp_data = 0x000000FE;
     }
-    else if (strncmp(ntlts->clkClock.Source, "EXT", sizeof("EXT")) == 0)
+    else if (strncmp(ntlts->clkClock.Source, "EXT", strlen("EXT")) == 0)
     {
         temp_data = 0x000000FF;
     }
@@ -418,7 +439,8 @@ uint8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         temp_data = 0x00000000;
     }
 
-    if (strncmp(ntlts->clkClock.Source, "NA", sizeof("NA")) == 0)
+    if (strncmp(ntlts->clkClock.Source, "NA", strlen("NA")) == 0)
+    // if (temp_string == "NA")
     {
         // nothing
     }
@@ -431,100 +453,132 @@ uint8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         // switch (temp_data & 0x0000FFFF)
         //{
         // case 0x00000000:
-        //     ntlts->clkClock.Source->setCurrentText("NONE");
+        //     ui->ClkClockSourceValue->setCurrentText("NONE");
         //     break;
         // case 0x00000001:
-        //     ntlts->clkClock.Source->setCurrentText("TOD");
+        //     ui->ClkClockSourceValue->setCurrentText("TOD");
         //     break;
         // case 0x00000002:
-        //     ntlts->clkClock.Source->setCurrentText("IRIG");
+        //     ui->ClkClockSourceValue->setCurrentText("IRIG");
         //     break;
         // case 0x00000003:
-        //     ntlts->clkClock.Source->setCurrentText("PPS");
+        //     ui->ClkClockSourceValue->setCurrentText("PPS");
         //     break;
         // case 0x00000004:
-        //     ntlts->clkClock.Source->setCurrentText("PTP");
+        //     ui->ClkClockSourceValue->setCurrentText("PTP");
         //     break;
         // case 0x00000005:
-        //     ntlts->clkClock.Source->setCurrentText("RTC");
+        //     ui->ClkClockSourceValue->setCurrentText("RTC");
         //     break;
         // case 0x00000006:
-        //     ntlts->clkClock.Source->setCurrentText("DCF");
+        //     ui->ClkClockSourceValue->setCurrentText("DCF");
         //     break;
         // case 0x00000007:
-        //     ntlts->clkClock.Source->setCurrentText("NTP");
+        //     ui->ClkClockSourceValue->setCurrentText("NTP");
         //     break;
         // case 0x000000FE:
-        //     ntlts->clkClock.Source->setCurrentText("REG");
+        //     ui->ClkClockSourceValue->setCurrentText("REG");
         //     break;
         // case 0x000000FF:
-        //     ntlts->clkClock.Source->setCurrentText("EXT");
+        //     ui->ClkClockSourceValue->setCurrentText("EXT");
         //     break;
         // default:
-        //     ntlts->clkClock.Source->setCurrentText("NA");
+        //     ui->ClkClockSourceValue->setCurrentText("NA");
         //     break;
         // }
     }
     else
     {
-        ntlts->clkClock.Source->setCurrentText("NA");
+        // ui->ClkClockSourceValue->setCurrentText("NA");
     }
 
     // in sync Threshold
-    temp_string = ntlts->clkClock.InSyncThreshold->text();
-    temp_data = temp_string.toUInt(nullptr, 10);
-    if (temp_string == "NA")
+    // temp_string = ui->ClkClockInSyncThresholdValue->text();
+    // temp_data = temp_string.toUInt(nullptr, 10);
+
+    temp_data = ntlts->clkClock.InSyncThreshold;
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->clkRegs.InSyncThresholdReg;
+    }
+    // if (temp_string == "NA")
+    if (false)
     {
         // nothing
     }
     else if (0 == write_reg(temp_addr + Ucm_ClkClock_InSyncThresholdReg, &temp_data))
     {
-        ntlts->clkClock.InSyncThreshold = temp_data;
+        // ui->ClkClockInSyncThresholdValue->setText(QString::number(temp_data));
     }
     else
     {
-        ntlts->clkClock.InSyncThreshold->setText("NA");
+        // ui->ClkClockInSyncThresholdValue->setText("NA");
+        return -1;
     }
 
     // seconds
-    temp_string = ntlts->clkClock.Seconds->text();
-    temp_data = temp_string.toUInt(nullptr, 10);
-    if (strncmp(ntlts->clkClock.Source, "NA", sizeof("NA")) == 0)
+    // temp_string = ui->ClkClockSecondsValue->text();
+    // temp_data = temp_string.toUInt(nullptr, 10);
+
+    temp_data = ntlts->clkClock.Seconds;
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->clkRegs.TimeAdjValueHReg;
+    }
+
+    // if (temp_string == "NA")
+    if (false)
     {
         // nothing
     }
     else if (0 == write_reg(temp_addr + Ucm_ClkClock_TimeAdjValueHReg, &temp_data))
     {
-        ntlts->clkClock.Seconds = temp_data;
-        ;
+        // ui->ClkClockSecondsValue->setText(QString::number(temp_data));
     }
     else
     {
-        ntlts->clkClock.TimeAdj = 0;
-        ntlts->clkClock.Seconds->setText("NA");
+        // ui->ClkClockTimeAdjCheckBox->setChecked(false);
+        // ui->ClkClockSecondsValue->setText("NA");
     }
 
     // nanoseconds
-    temp_string = ntlts->clkClock.Nanoseconds->text();
-    temp_data = temp_string.toUInt(nullptr, 10);
-    if (temp_string == "NA")
+    // temp_string = ui->ClkClockNanosecondsValue->text();
+    // temp_data = temp_string.toUInt(nullptr, 10);
+    temp_data = ntlts->clkClock.Nanoseconds;
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->clkRegs.TimeAdjValueLReg;
+    }
+    // if(false)
+    // if (temp_string == "NA")
+    if (false)
     {
         // nothing
     }
     else if (0 == write_reg(temp_addr + Ucm_ClkClock_TimeAdjValueLReg, &temp_data))
     {
-        ntlts->clkClock.Nanoseconds = temp_data;
-        ;
+        // ui->ClkClockNanosecondsValue->setText(QString::number(temp_data));
     }
     else
     {
-        ntlts->clkClock.TimeAdj = 0;
-        ntlts->clkClock.Nanoseconds->setText("NA");
+        // ui->ClkClockTimeAdjCheckBox->setChecked(false);
+        // ui->ClkClockNanosecondsValue->setText("NA");
     }
 
     // offset
-    temp_string = ntlts->clkClock.Offset->text();
-    int temp_offset = temp_string.toInt(nullptr, 10);
+    // temp_string = ui->ClkClockOffsetValue->text();
+    // int temp_offset = temp_string.toInt(nullptr, 10);
+
+    int temp_offset = ntlts->clkClock.Offset;
+
+    if (fromRegisters)
+    {
+        temp_offset = ntlts->clkRegs.OffsetAdjValueReg;
+    }
+
     if (temp_offset < 0)
     {
         temp_data = abs(temp_offset) | 0x80000000;
@@ -534,7 +588,7 @@ uint8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         temp_data = abs(temp_offset);
     }
 
-    if (temp_string == "NA")
+    if (false)
     {
         // nothing
     }
@@ -546,294 +600,484 @@ uint8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         {
             temp_offset = -1 * temp_offset;
         }
-        ntlts->clkClock.Offset->setText(QString::number(temp_offset));
+        // ui->ClkClockOffsetValue->setText(QString::number(temp_offset));
 
-        temp_string = ntlts->clkClock.OffsetInterval->text();
-        temp_data = temp_string.toUInt(nullptr, 10);
-        if (temp_string == "NA")
+        // temp_string = ui->ClkClockOffsetIntervalValue->text();
+
+        // temp_data = temp_string.toUInt(nullptr, 10);
+
+        temp_data = ntlts->clkClock.OffsetInterval;
+
+        if (fromRegisters)
+        {
+            temp_data = ntlts->clkRegs.OffsetAdjIntervalReg;
+        }
+
+        if (false)
         {
             // nothing
         }
         else if (0 == write_reg(temp_addr + Ucm_ClkClock_OffsetAdjIntervalReg, &temp_data))
         {
-            ntlts->clkClock.OffsetInterval = temp_data;
-            ;
+            // ui->ClkClockOffsetIntervalValue->setText(QString::number(temp_data));
         }
         else
         {
-            ntlts->clkClock.Offset->setText("NA");
-            ntlts->clkClock.OffsetInterval->setText("NA");
-            ntlts->clkClock.OffsetAdj = 0;
+            // ui->ClkClockOffsetValue->setText("NA");
+            // ui->ClkClockOffsetIntervalValue->setText("NA");
+            // ui->ClkClockOffsetAdjCheckBox->setChecked(false);
         }
     }
     else
     {
-        ntlts->clkClock.Offset->setText("NA");
-        ntlts->clkClock.OffsetInterval->setText("NA");
-        ntlts->clkClock.OffsetAdj = 0;
+        // ui->ClkClockOffsetValue->setText("NA");
+        // ui->ClkClockOffsetIntervalValue->setText("NA");
+        // ui->ClkClockOffsetAdjCheckBox->setChecked(false);
     }
 
     // drift
-    temp_string = ntlts->clkClock.Drift->text();
-    int temp_drift = temp_string.toInt(nullptr, 10);
+    // temp_string = ui->ClkClockDriftValue->text();
+    // double temp_drift = temp_string.toDouble(nullptr);
+
+    double temp_drift = ntlts->clkClock.Drift;
+
+    if (fromRegisters)
+    {
+        temp_drift = ntlts->clkRegs.DriftAdjValueReg;
+    }
+
     if (temp_drift < 0)
     {
-        temp_data = abs(temp_drift) | 0x80000000;
+        temp_data = abs(((int)temp_drift)) | 0x80000000;
     }
     else
     {
         temp_data = abs(temp_drift);
     }
 
-    if (temp_string == "NA")
+    // if (temp_string == "NA")
+    if (false)
     {
         // nothing
     }
     else if (0 == write_reg(temp_addr + Ucm_ClkClock_DriftAdjValueReg, &temp_data))
     {
-        temp_drift = temp_data & 0x7FFFFFFF;
-        if ((temp_data & 0x80000000) != 0)
+        temp_drift = abs(temp_drift);
+        temp_drift = temp_drift - ((int)temp_drift);
+        temp_data = (int)(temp_drift * 65536.0);
+        if (0 == write_reg(temp_addr + Ucm_ClkClock_DriftAdjFractionsReg, &temp_data))
         {
-            temp_drift = -1 * temp_drift;
+            // nothing might fail
         }
-        ntlts->clkClock.Drift->setText(QString::number(temp_drift));
 
-        temp_string = ntlts->clkClock.DriftInterval->text();
-        temp_data = temp_string.toUInt(nullptr, 10);
-        if (temp_string == "NA")
+        temp_data = ntlts->clkClock.DriftInterval;
+
+        if (fromRegisters)
+        {
+            temp_data = ntlts->clkRegs.DriftAdjIntervalReg;
+        }
+
+        // temp_string = ui->ClkClockDriftIntervalValue->text();
+        // temp_data = temp_string.toUInt(nullptr, 10);
+        // if (temp_string == "NA")
+        if (false)
         {
             // nothing
         }
         else if (0 == write_reg(temp_addr + Ucm_ClkClock_DriftAdjIntervalReg, &temp_data))
         {
-            ntlts->clkClock.DriftInterval = temp_data;
-            ;
+            // nothing
         }
         else
         {
-            ntlts->clkClock.Drift->setText("NA");
-            ntlts->clkClock.DriftInterval->setText("NA");
-            ntlts->clkClock.DriftAdj = 0;
+            // ui->ClkClockDriftValue->setText("NA");
+            // ui->ClkClockDriftIntervalValue->setText("NA");
+            // ui->ClkClockDriftAdjCheckBox->setChecked(false);
         }
     }
     else
     {
-        ntlts->clkClock.Drift->setText("NA");
-        ntlts->clkClock.DriftInterval->setText("NA");
-        ntlts->clkClock.DriftAdj = 0;
+        // ui->ClkClockDriftValue->setText("NA");
+        // ui->ClkClockDriftIntervalValue->setText("NA");
+        // ui->ClkClockDriftAdjCheckBox->setChecked(false);
     }
 
-    // PI servo parameters
-    if ((ntlts->clkClock.PiOffsetMulP->text() == "NA") ||
-        (ntlts->clkClock.PiOffsetDivP->text() == "NA") ||
-        (ntlts->clkClock.PiOffsetMulI->text() == "NA") ||
-        (ntlts->clkClock.PiOffsetDivI->text() == "NA"))
-    {
-        ntlts->clkClock.PiOffsetMulP->setText("NA");
-        ntlts->clkClock.PiOffsetDivP->setText("NA");
-        ntlts->clkClock.PiOffsetMulI->setText("NA");
-        ntlts->clkClock.PiOffsetDivI->setText("NA");
-        ntlts->clkClock.PiSetCustomParameters = 0;
-    }
-    else
-    {
-        int temp_mul;
-        int temp_div;
-
-        temp_string = ntlts->clkClock.PiOffsetMulP->text();
-        temp_mul = temp_string.toInt(nullptr, 10);
-        temp_string = ntlts->clkClock.PiOffsetDivP->text();
-        temp_div = temp_string.toInt(nullptr, 10);
-
-        if (temp_mul > 1024)
-        {
-            temp_mul = 1024;
-        }
-        else if (temp_mul < 0)
-        {
-            temp_mul = 0;
-        }
-
-        if (temp_div > 1024)
-        {
-            temp_div = 1024;
-        }
-        else if (temp_div <= 0)
-        {
-            temp_div = 1;
-        }
-
-        temp_data = (0x00010000 * temp_mul) / temp_div;
-        if (temp_data >= 0x10000)
-        {
-            temp_data = 0xFFFF; // as close to one as possible
-        }
-
-        if (0 == write_reg(temp_addr + Ucm_ClkClock_ServoOffsetFactorPReg, &temp_data))
-        {
-            ntlts->clkClock.PiOffsetMulP->setText(QString::number(temp_mul));
-            ntlts->clkClock.PiOffsetDivP->setText(QString::number(temp_div));
-        }
-        else
-        {
-            ntlts->clkClock.PiOffsetMulP->setText("NA");
-            ntlts->clkClock.PiOffsetDivP->setText("NA");
-            ntlts->clkClock.PiSetCustomParameters = 0;
-        }
-
-        temp_string = ntlts->clkClock.PiOffsetMulI->text();
-        temp_mul = temp_string.toInt(nullptr, 10);
-        temp_string = ntlts->clkClock.PiOffsetDivI->text();
-        temp_div = temp_string.toInt(nullptr, 10);
-
-        if (temp_mul > 1024)
-        {
-            temp_mul = 1024;
-        }
-        else if (temp_mul < 0)
-        {
-            temp_mul = 0;
-        }
-
-        if (temp_div > 1024)
-        {
-            temp_div = 1024;
-        }
-        else if (temp_div <= 0)
-        {
-            temp_div = 1;
-        }
-
-        temp_data = (0x00010000 * temp_mul) / temp_div;
-        if (temp_data >= 0x10000)
-        {
-            temp_data = 0xFFFF; // as close to one as possible
-        }
-
-        if (0 == write_reg(temp_addr + Ucm_ClkClock_ServoOffsetFactorIReg, &temp_data))
-        {
-            ntlts->clkClock.PiOffsetMulI->setText(QString::number(temp_mul));
-            ntlts->clkClock.PiOffsetDivI->setText(QString::number(temp_div));
-        }
-        else
-        {
-            ntlts->clkClock.PiOffsetMulI->setText("NA");
-            ntlts->clkClock.PiOffsetDivI->setText("NA");
-            ntlts->clkClock.PiSetCustomParameters = 0;
-        }
-    }
-
-    if ((ntlts->clkClock.PiDriftMulP->text() == "NA") ||
-        (ntlts->clkClock.PiDriftDivP->text() == "NA") ||
-        (ntlts->clkClock.PiDriftMulI->text() == "NA") ||
-        (ntlts->clkClock.PiDriftDivI->text() == "NA"))
-    {
-        ntlts->clkClock.PiDriftMulP->setText("NA");
-        ntlts->clkClock.PiDriftDivP->setText("NA");
-        ntlts->clkClock.PiDriftMulI->setText("NA");
-        ntlts->clkClock.PiDriftDivI->setText("NA");
-        ntlts->clkClock.PiSetCustomParameters = 0;
-    }
-    else
-    {
-        int temp_mul;
-        int temp_div;
-
-        temp_string = ntlts->clkClock.PiDriftMulP->text();
-        temp_mul = temp_string.toInt(nullptr, 10);
-        temp_string = ntlts->clkClock.PiDriftDivP->text();
-        temp_div = temp_string.toInt(nullptr, 10);
-
-        if (temp_mul > 1024)
-        {
-            temp_mul = 1024;
-        }
-        else if (temp_mul < 0)
-        {
-            temp_mul = 0;
-        }
-
-        if (temp_div > 1024)
-        {
-            temp_div = 1024;
-        }
-        else if (temp_div <= 0)
-        {
-            temp_div = 1;
-        }
-
-        temp_data = (0x00010000 * temp_mul) / temp_div;
-
-        if (0 == write_reg(temp_addr + Ucm_ClkClock_ServoDriftFactorPReg, &temp_data))
-        {
-            ntlts->clkClock.PiDriftMulP->setText(QString::number(temp_mul));
-            ntlts->clkClock.PiDriftDivP->setText(QString::number(temp_div));
-        }
-        else
-        {
-            ntlts->clkClock.PiDriftMulP->setText("NA");
-            ntlts->clkClock.PiDriftDivP->setText("NA");
-            ntlts->clkClock.PiSetCustomParameters = 0;
-        }
-
-        temp_string = ntlts->clkClock.PiDriftMulI->text();
-        temp_mul = temp_string.toInt(nullptr, 10);
-        temp_string = ntlts->clkClock.PiDriftDivI->text();
-        temp_div = temp_string.toInt(nullptr, 10);
-
-        if (temp_mul > 1024)
-        {
-            temp_mul = 1024;
-        }
-        else if (temp_mul < 0)
-        {
-            temp_mul = 0;
-        }
-
-        if (temp_div > 1024)
-        {
-            temp_div = 1024;
-        }
-        else if (temp_div <= 0)
-        {
-            temp_div = 1;
-        }
-
-        temp_data = (0x00010000 * temp_mul) / temp_div;
-
-        if (0 == write_reg(temp_addr + Ucm_ClkClock_ServoDriftFactorIReg, &temp_data))
-        {
-            ntlts->clkClock.PiDriftMulI->setText(QString::number(temp_mul));
-            ntlts->clkClock.PiDriftDivI->setText(QString::number(temp_div));
-        }
-        else
-        {
-            ntlts->clkClock.PiDriftMulI->setText("NA");
-            ntlts->clkClock.PiDriftDivI->setText("NA");
-            ntlts->clkClock.PiSetCustomParameters = 0;
-        }
-    }
+    // offset outlier config
+    // temp_string = ui->ClkClockOffsetOutlierThresholdValue->text();
+    // temp_data = (temp_string.toInt(nullptr, 10) & 0x7FFFFFFF);
+    // if (temp_data < 1)
+    //{
+    //    temp_data = 1;
+    //}
+    // else if (temp_data > 1000000000)
+    //{
+    //    temp_data = 1000000000;
+    //}
+    //
+    // if (true == ui->ClkClockOffsetOutlierEnableCheckBox->isChecked())
+    //{
+    //    temp_data |= 0x80000000; // enable
+    //}
+    //
+    // if (temp_string == "NA")
+    //{
+    //    // nothing
+    //}
+    // else if (0 == write_reg(temp_addr + Ucm_ClkClock_OffsetOutlierFilterReg, &temp_data))
+    //{
+    //    // nothing
+    //}
+    // else
+    //{
+    //    ui->ClkClockOffsetOutlierThresholdValue->setText("NA");
+    //    ui->ClkClockOffsetOutlierEnableCheckBox->setChecked(false);
+    //}
+    //
+    //// drift outlier config
+    // temp_string = ui->ClkClockDriftOutlierThresholdValue->text();
+    // temp_data = (temp_string.toInt(nullptr, 10) & 0x7FFFFFFF);
+    // if (temp_data < 1)
+    //{
+    //     temp_data = 1;
+    // }
+    // else if (temp_data > 1000000000)
+    //{
+    //     temp_data = 1000000000;
+    // }
+    //
+    // if (true == ui->ClkClockDriftOutlierEnableCheckBox->isChecked())
+    //{
+    //    temp_data |= 0x80000000; // enable
+    //}
+    //
+    // if (temp_string == "NA")
+    //{
+    //    // nothing
+    //}
+    // else if (0 == write_reg(temp_addr + Ucm_ClkClock_DriftOutlierFilterReg, &temp_data))
+    //{
+    //    // nothing
+    //}
+    // else
+    //{
+    //    ui->ClkClockDriftOutlierThresholdValue->setText("NA");
+    //    ui->ClkClockDriftOutlierEnableCheckBox->setChecked(false);
+    //}
+    //
+    //// offset limiter config
+    // temp_string = ui->ClkClockOffsetLimiterLimitValue->text();
+    // temp_data = (temp_string.toInt(nullptr, 10) & 0x7FFFFFFF);
+    // if (temp_data < 1)
+    //{
+    //     temp_data = 1;
+    // }
+    // else if (temp_data > 1000000000)
+    //{
+    //     temp_data = 1000000000;
+    // }
+    //
+    // if (true == ui->ClkClockOffsetLimiterEnableCheckBox->isChecked())
+    //{
+    //    temp_data |= 0x80000000; // enable
+    //}
+    //
+    // if (temp_string == "NA")
+    //{
+    //    // nothing
+    //}
+    // else if (0 == write_reg(temp_addr + Ucm_ClkClock_OffsetMaxRateChangeLimiterReg, &temp_data))
+    //{
+    //    // nothing
+    //}
+    // else
+    //{
+    //    ui->ClkClockOffsetLimiterLimitValue->setText("NA");
+    //    ui->ClkClockOffsetLimiterEnableCheckBox->setChecked(false);
+    //}
+    //
+    //// drift limiter config
+    // temp_string = ui->ClkClockDriftLimiterLimitValue->text();
+    // double temp_drift_limit = temp_string.toDouble(nullptr);
+    // temp_data = (int)(temp_drift_limit * 65536.0);
+    // temp_data = temp_data & 0x7FFFFFFF;
+    // if (temp_data < 1)
+    //{
+    //     temp_data = 1;
+    // }
+    // else if (temp_data > 1000000000)
+    //{
+    //     temp_data = 1000000000;
+    // }
+    //
+    // if (true == ui->ClkClockDriftLimiterEnableCheckBox->isChecked())
+    //{
+    //    temp_data |= 0x80000000; // enable
+    //}
+    //
+    // if (temp_string == "NA")
+    //{
+    //    // nothing
+    //}
+    // else if (0 == write_reg(temp_addr + Ucm_ClkClock_DriftMaxRateChangeLimiterReg, &temp_data))
+    //{
+    //    // nothing
+    //}
+    // else
+    //{
+    //    ui->ClkClockDriftLimiterLimitValue->setText("NA");
+    //    ui->ClkClockDriftLimiterEnableCheckBox->setChecked(false);
+    //}
+    //
+    //// PI servo parameters
+    // if ((ui->ClkClockPiOffsetMulPValue->text() == "NA") ||
+    //     (ui->ClkClockPiOffsetDivPValue->text() == "NA") ||
+    //     (ui->ClkClockPiOffsetMulIValue->text() == "NA") ||
+    //     (ui->ClkClockPiOffsetDivIValue->text() == "NA"))
+    //{
+    //     ui->ClkClockPiOffsetMulPValue->setText("NA");
+    //     ui->ClkClockPiOffsetDivPValue->setText("NA");
+    //     ui->ClkClockPiOffsetMulIValue->setText("NA");
+    //     ui->ClkClockPiOffsetDivIValue->setText("NA");
+    //     ui->ClkClockPiSetCustomParametersCheckBox->setChecked(false);
+    // }
+    // else
+    //{
+    //     int temp_mul;
+    //     int temp_div;
+    //
+    //    temp_string = ui->ClkClockPiOffsetMulPValue->text();
+    //    temp_mul = temp_string.toInt(nullptr, 10);
+    //    temp_string = ui->ClkClockPiOffsetDivPValue->text();
+    //    temp_div = temp_string.toInt(nullptr, 10);
+    //
+    //    if (temp_mul > 1024)
+    //    {
+    //        temp_mul = 1024;
+    //    }
+    //    else if (temp_mul < 0)
+    //    {
+    //        temp_mul = 0;
+    //    }
+    //
+    //    if (temp_div > 1024)
+    //    {
+    //        temp_div = 1024;
+    //    }
+    //    else if (temp_div <= 0)
+    //    {
+    //        temp_div = 1;
+    //    }
+    //
+    //    temp_data = (0x00010000 * temp_mul) / temp_div;
+    //    if (temp_data >= 0x10000)
+    //    {
+    //        temp_data = 0xFFFF; // as close to one as possible
+    //    }
+    //
+    //    if (0 == write_reg(temp_addr + Ucm_ClkClock_ServoOffsetFactorPReg, &temp_data))
+    //    {
+    //        ui->ClkClockPiOffsetMulPValue->setText(QString::number(temp_mul));
+    //        ui->ClkClockPiOffsetDivPValue->setText(QString::number(temp_div));
+    //    }
+    //    else
+    //    {
+    //        ui->ClkClockPiOffsetMulPValue->setText("NA");
+    //        ui->ClkClockPiOffsetDivPValue->setText("NA");
+    //        ui->ClkClockPiSetCustomParametersCheckBox->setChecked(false);
+    //    }
+    //
+    //    temp_string = ui->ClkClockPiOffsetMulIValue->text();
+    //    temp_mul = temp_string.toInt(nullptr, 10);
+    //    temp_string = ui->ClkClockPiOffsetDivIValue->text();
+    //    temp_div = temp_string.toInt(nullptr, 10);
+    //
+    //    if (temp_mul > 1024)
+    //    {
+    //        temp_mul = 1024;
+    //    }
+    //    else if (temp_mul < 0)
+    //    {
+    //        temp_mul = 0;
+    //    }
+    //
+    //    if (temp_div > 1024)
+    //    {
+    //        temp_div = 1024;
+    //    }
+    //    else if (temp_div <= 0)
+    //    {
+    //        temp_div = 1;
+    ////    }
+    ////
+    ////    temp_data = (0x00010000 * temp_mul) / temp_div;
+    ////    if (temp_data >= 0x10000)
+    //    {
+    //        temp_data = 0xFFFF; // as close to one as possible
+    //    }
+    //
+    //    if (0 == write_reg(temp_addr + Ucm_ClkClock_ServoOffsetFactorIReg, &temp_data))
+    //    {
+    //        ui->ClkClockPiOffsetMulIValue->setText(QString::number(temp_mul));
+    //        ui->ClkClockPiOffsetDivIValue->setText(QString::number(temp_div));
+    //    }
+    //    else
+    //    {
+    //        ui->ClkClockPiOffsetMulIValue->setText("NA");
+    //        ui->ClkClockPiOffsetDivIValue->setText("NA");
+    //        ui->ClkClockPiSetCustomParametersCheckBox->setChecked(false);
+    //    }
+    //}
+    //
+    // if ((ui->ClkClockPiDriftMulPValue->text() == "NA") ||
+    //    (ui->ClkClockPiDriftDivPValue->text() == "NA") ||
+    //    (ui->ClkClockPiDriftMulIValue->text() == "NA") ||
+    //    (ui->ClkClockPiDriftDivIValue->text() == "NA"))
+    //{
+    //    ui->ClkClockPiDriftMulPValue->setText("NA");
+    //    ui->ClkClockPiDriftDivPValue->setText("NA");
+    //    ui->ClkClockPiDriftMulIValue->setText("NA");
+    //    ui->ClkClockPiDriftDivIValue->setText("NA");
+    //    ui->ClkClockPiSetCustomParametersCheckBox->setChecked(false);
+    //}
+    // else
+    //{
+    //    int temp_mul;
+    //    int temp_div;
+    //
+    //    temp_string = ui->ClkClockPiDriftMulPValue->text();
+    //    temp_mul = temp_string.toInt(nullptr, 10);
+    //    temp_string = ui->ClkClockPiDriftDivPValue->text();
+    //    temp_div = temp_string.toInt(nullptr, 10);
+    //
+    //    if (temp_mul > 1024)
+    //    {
+    //        temp_mul = 1024;
+    //    }
+    //    else if (temp_mul < 0)
+    //    {
+    //        temp_mul = 0;
+    //    }
+    //
+    //    if (temp_div > 1024)
+    //    {
+    //        temp_div = 1024;
+    //    }
+    //    else if (temp_div <= 0)
+    //    {
+    //        temp_div = 1;
+    //    }
+    //
+    //    temp_data = (0x00010000 * temp_mul) / temp_div;
+    //
+    //    if (0 == write_reg(temp_addr + Ucm_ClkClock_ServoDriftFactorPReg, &temp_data))
+    //    {
+    //        ui->ClkClockPiDriftMulPValue->setText(QString::number(temp_mul));
+    //        ui->ClkClockPiDriftDivPValue->setText(QString::number(temp_div));
+    //    }
+    //    else
+    //    {
+    //        ui->ClkClockPiDriftMulPValue->setText("NA");
+    //        ui->ClkClockPiDriftDivPValue->setText("NA");
+    //        ui->ClkClockPiSetCustomParametersCheckBox->setChecked(false);
+    //    }
+    //
+    //    temp_string = ui->ClkClockPiDriftMulIValue->text();
+    //    temp_mul = temp_string.toInt(nullptr, 10);
+    //    temp_string = ui->ClkClockPiDriftDivIValue->text();
+    //    temp_div = temp_string.toInt(nullptr, 10);
+    //
+    //    if (temp_mul > 1024)
+    //    {
+    //        temp_mul = 1024;
+    //    }
+    //    else if (temp_mul < 0)
+    //    {
+    //        temp_mul = 0;
+    //    }
+    //
+    //    if (temp_div > 1024)
+    //    {
+    //        temp_div = 1024;
+    //    }
+    //    else if (temp_div <= 0)
+    //    {
+    //        temp_div = 1;
+    //    }
+    //
+    //    temp_data = (0x00010000 * temp_mul) / temp_div;
+    //
+    //    if (0 == write_reg(temp_addr + Ucm_ClkClock_ServoDriftFactorIReg, &temp_data))
+    //    {
+    //        ui->ClkClockPiDriftMulIValue->setText(QString::number(temp_mul));
+    //        ui->ClkClockPiDriftDivIValue->setText(QString::number(temp_div));
+    //    }
+    //    else
+    //    {
+    //        ui->ClkClockPiDriftMulIValue->setText("NA");
+    //        ui->ClkClockPiDriftDivIValue->setText("NA");
+    //        ui->ClkClockPiSetCustomParametersCheckBox->setChecked(false);
+    //    }
+    //}
+    //
+    //// holdover samples
+    // temp_string = ui->ClkClockHoldoverMaxSamplesValue->text();
+    // temp_data = temp_string.toUInt(nullptr, 10);
+    // if (temp_string == "NA")
+    //{
+    //     // nothing
+    // }
+    // else
+    //{
+    //     if (temp_data > 65536)
+    //     {
+    //         temp_data = 65536;
+    //     }
+    //
+    //    if (0 == write_reg(temp_addr + Ucm_ClkClock_HoldoverMaxSamplesReg, &temp_data))
+    //    {
+    //        ui->ClkClockHoldoverMaxSamplesValue->setText(QString::number(temp_data));
+    //    }
+    //    else
+    //    {
+    //        ui->ClkClockHoldoverMaxSamplesValue->setText("NA");
+    //    }
+    //}
 
     temp_data = 0x00000000;
-    if (true == ntlts->clkClock.Enable->isChecked())
+    if (ntlts->clkClock.Enable)
     {
         temp_data |= 0x00000001; // enable
     }
-    if (true == ntlts->clkClock.TimeAdj->isChecked())
+    if (ntlts->clkClock.TimeAdjEnable)
     {
         temp_data |= 0x00000002; // set time
     }
-    if (true == ntlts->clkClock.OffsetAdj->isChecked())
+    // if (ntlts->clkClock.OffsetAdjEnable)
+    //{
+    //     temp_data |= 0x00000004; // set offset
+    // }
+    // if (ntlts->clkClock.DriftAdj)
+    //{
+    //     temp_data |= 0x00000008; // set drift
+    // }
+    // if (ntlts->clkClock.PiSetCustomParameters)
+    //{
+    //     temp_data |= 0x00000100; // set servo parameters
+    // }
+    // if (ntlts->clkClock.HoldoverOffset)
+    //{
+    //     temp_data |= 0x00020000; // include offset in holdover
+    // }
+    // if (ntlts->clkClock.HoldoverEnable)
+    //{
+    //     temp_data |= 0x00010000; // enable advance holdover setting
+    // }
+
+    temp_data = ntlts->clkClock.Enable;
+
+    if (fromRegisters)
     {
-        temp_data |= 0x00000004; // set offset
-    }
-    if (true == ntlts->clkClock.DriftAdj->isChecked())
-    {
-        temp_data |= 0x00000008; // set drift
-    }
-    if (true == ntlts->clkClock.PiSetCustomParameters->isChecked())
-    {
-        temp_data |= 0x00000100; // set servo parameters
+        temp_data = ntlts->clkRegs.ControlReg;
     }
 
     if (0 == write_reg(temp_addr + Ucm_ClkClock_ControlReg, &temp_data))
@@ -842,16 +1086,16 @@ uint8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     }
     else
     {
-        ntlts->clkClock.Seconds->setText("NA");
-        ntlts->clkClock.Nanoseconds->setText("NA");
+        // ui->ClkClockSecondsValue->setText("NA");
+        // ui->ClkClockNanosecondsValue->setText("NA");
     }
 
-    ntlts->clkClock.TimeAdj = 0;
-    ntlts->clkClock.OffsetAdj = 0;
-    ntlts->clkClock.DriftAdj = 0;
-    ntlts->clkClock.PiSetCustomParameters = 0;
-}
+    // ui->ClkClockTimeAdjCheckBox->setChecked(false);
+    // ui->ClkClockOffsetAdjCheckBox->setChecked(false);
+    // ui->ClkClockDriftAdjCheckBox->setChecked(false);
+    // ui->ClkClockPiSetCustomParametersCheckBox->setChecked(false);
 
-*/
+    return 0;
+}
 
 #endif
