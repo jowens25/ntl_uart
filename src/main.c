@@ -43,7 +43,8 @@ int main(int argc, char *argv[])
     ntlts.ppsRegs.StartAddr = 0xB0030000;
     ntlts.ptpRegs.StartAddr = 0xB0010000;
     ntlts.ntpRegs.StartAddr = 0xB0020000;
-    int err = clk_clock_read_values(&ntlts);
+
+    // int err = clk_clock_read_values(&ntlts);
     /*
     int err = clk_clock_read_values(&ntlts);
 
@@ -196,7 +197,7 @@ int main(int argc, char *argv[])
     printf("Version: 0x%08x\r\n", ntlts.ppsSlave.Version);
     printf("==============================================\n");
 */
-    // s/*
+    /*
     err = ptp_oc_read_values(&ntlts);
     if (0 != err)
     {
@@ -271,7 +272,7 @@ int main(int argc, char *argv[])
 
     // memcpy(ntlts.ptpOc.Layer, "Layer 3v4", 10);
 
-    // memcpy(ntlts.ptpOc.ipAddr, "10.1.10.206", 12);
+    memcpy(ntlts.ptpOc.ipAddr, "10.1.10.206", 12);
 
     err = ptp_oc_write_values(&ntlts, 0);
     if (0 != err)
