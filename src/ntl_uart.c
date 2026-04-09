@@ -6,12 +6,9 @@
  */
 
 #include "ntl_uart.h"
-#include "cores.h"
 
-#include "main.h"
-#ifdef LINUX
-#include "socket_interface.h"
-#include "common.h"
+#ifdef USE_SOCKET
+
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -24,6 +21,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <syslog.h>
+
 #else
 #include "uartCircBuff.h"
 #endif
@@ -31,7 +29,6 @@
 #include "stdlib.h"
 #include "string.h"
 #include "stdbool.h"
-#ifdef NTL_TIME_SERVER
 
 volatile int ntlRspReceived = 0;
 volatile int ntlCmdReceived = 0;
@@ -417,6 +414,84 @@ uint8_t write_reg(const uint32_t addr, uint32_t *data)
     //*data = strtoull(temp_string, NULL, 16);
 
     return 0;
+}
+
+#ifdef USE_SOCKET
+
+int socket_fd = 0;
+#define CHUNK_SIZE 32
+
+void readSocket(int socket_fd, char *msg)
+{
+    char out[STRING_SIZE] = {0};
+
+    fd_set read_fds;
+
+    for (int i = 0; i < 50; i++)
+    {
+
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 100000; // 100ms
+
+        FD_ZERO(&read_fds);
+        FD_SET(socket_fd, &read_fds);
+
+        int status = select(socket_fd + 1, &read_fds, NULL, NULL, &tv);
+        if (status == -1)
+        {
+            exit(4);
+        }
+        else
+        {
+            if (!status)
+            {
+                printf("timeout exiting\n");
+                break;
+                continue;
+            }
+        }
+
+        if (FD_ISSET(socket_fd, &read_fds))
+        {
+
+            int n = read(socket_fd, msg, CHUNK_SIZE);
+
+            msg[n] = '\0';
+            strncat(out, msg, strlen(msg));
+
+            if (msg[n - 1] == '\n')
+            {
+                // printf("%s", out);
+                strncpy(msg, out, strlen(out));
+                break;
+            }
+        }
+    }
+}
+
+void set_nonblocking(int fd)
+{
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags != -1)
+        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+int setup_socket()
+{
+    // setup socket
+    int socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(struct sockaddr_un));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, "/var/lib/ns/ns-serial-mux.sock", sizeof(addr.sun_path) - 1);
+
+    connect(socket_fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un));
+
+    set_nonblocking(socket_fd);
+
+    return socket_fd;
 }
 
 #endif

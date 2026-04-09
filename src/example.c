@@ -3,26 +3,11 @@
 // #include "ntpServer.h"
 // #include "cores.h"
 
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <sys/select.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <syslog.h>
-#include <stdint.h>
-
-#include "ntpServer.h"
+// #include "ntpServer.h"
 
 #include "ntl_uart.h"
 
 // #include "ppsSlave.h"
-
-#include "socket_interface.h"
 
 /*
  * ntl_uart.c
@@ -45,7 +30,7 @@ int main(int argc, char *argv[])
     ntlts.ntpRegs.StartAddr = 0xB0020000;
 
     // int err = clk_clock_read_values(&ntlts);
-    /*
+
     int err = clk_clock_read_values(&ntlts);
 
     if (err != 0)
@@ -68,7 +53,7 @@ int main(int argc, char *argv[])
     printf("CorrectedDrift: %f\r\n", ntlts.clkClock.CorrectedDrift);
     printf("==============================================\n");
 
-    // snprintf(ntlts.clkClock.Source, strlen("TOD"), "TOD");
+    /*// snprintf(ntlts.clkClock.Source, strlen("TOD"), "TOD");
 
     memcpy(ntlts.clkClock.Source, "TOD", 3);
 

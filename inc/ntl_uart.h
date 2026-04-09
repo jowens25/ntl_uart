@@ -11,6 +11,16 @@
 #include <string.h>
 #include <stdio.h>
 
+#define USE_SOCKET
+
+#ifdef USE_SOCKET
+extern int socket_fd;
+
+int setup_socket(void);
+void readSocket(int socket_fd, char *msg);
+
+#endif
+
 typedef struct ClkRegisters
 {
 	uint32_t StartAddr;
@@ -406,8 +416,6 @@ extern int ntlWriteSuccess;
 
 #define NTL_RESPONSE_TIMEOUT 1
 #define STRING_SIZE 32
-
-#define NTL_TIME_SERVER
 
 uint8_t read_reg(const uint32_t addr, uint32_t *data);
 uint8_t write_reg(const uint32_t addr, uint32_t *data);

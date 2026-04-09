@@ -1,18 +1,8 @@
-#include "main.h"
-#ifndef LINUX
-#include "uartCircBuff.h"
-
-#else
-#include "socket_interface.h"
-#endif
-
 #include "ntl_uart.h"
 
 #include "stdlib.h"
 #include "string.h"
 #include "stdbool.h"
-
-#ifdef NTL_TIME_SERVER
 
 int8_t clk_clock_read_values(NTL_TS_T *ntlts)
 {
@@ -1097,5 +1087,3 @@ int8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 
     return 0;
 }
-
-#endif
