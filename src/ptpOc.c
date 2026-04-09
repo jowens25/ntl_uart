@@ -359,7 +359,7 @@ int8_t ptp_oc_read_values(NTL_TS_T *ntlts)
                                  temp_ip6[14],
                                  temp_ip6[15]);
 
-                        printf(ntlts->ptpOc.ipAddr);
+                        // printf(ntlts->ptpOc.ipAddr);
 
                         // ntlts->ptpOc.IpValue->setText(temp_string);
                     }
@@ -858,617 +858,570 @@ int8_t ptp_oc_read_values(NTL_TS_T *ntlts)
         // ntlts->ptpOc.PortDsSyncLogMsgIntervalValue->setText("NA");
         // ntlts->ptpOc.PortDsSyncReceiptTimeoutValue->setText("NA");
     }
-    /*
-        //********************************
-        // current dataset
-        //********************************
-        temp_data = 0x40000000;
-        if (0 == write_reg(temp_addr + Ucm_PtpOc_CurrentDsControlReg, &temp_data))
+
+    //********************************
+    // current dataset
+    //********************************
+    temp_data = 0x40000000;
+    if (0 == write_reg(temp_addr + Ucm_PtpOc_CurrentDsControlReg, &temp_data))
+    {
+        for (int i = 0; i < 10; i++)
         {
-            for (int i = 0; i < 10; i++)
+            if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDsControlReg, &temp_data))
             {
-                if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDsControlReg, &temp_data))
+                if ((temp_data & 0x80000000) != 0)
                 {
-                    if ((temp_data & 0x80000000) != 0)
+
+                    // steps removed
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDs1Reg, &temp_data))
                     {
+                        // ntlts->ptpOc.CurrentDsStepsRemovedValue->setText(QString::number(temp_data & 0xFFFF));
+                        ntlts->ptpOc.CurrentDsStepsRemoved = temp_data & 0xFFFF;
+                    }
+                    else
+                    {
+                        // ntlts->ptpOc.CurrentDsStepsRemovedValue->setText("NA");
+                    }
 
-                        // steps removed
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDs1Reg, &temp_data))
+                    // offset
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDs2Reg, &temp_data))
+                    {
+                        temp_offset = temp_data;
+                        temp_offset = temp_offset << 32;
+                        if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDs3Reg, &temp_data))
                         {
-                            ntlts->ptpOc.CurrentDsStepsRemovedValue->setText(QString::number(temp_data & 0xFFFF));
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.CurrentDsStepsRemovedValue->setText("NA");
-                        }
+                            temp_offset |= temp_data;
 
-                        // offset
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDs2Reg, &temp_data))
-                        {
-                            temp_offset = temp_data;
-                            temp_offset = temp_offset << 32;
-                            if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDs3Reg, &temp_data))
+                            if ((temp_offset & 0x8000000000000000) != 0)
                             {
-                                temp_offset |= temp_data;
-
-                                if ((temp_offset & 0x8000000000000000) != 0)
-                                {
-                                    temp_offset = (0xFFFF000000000000 | (temp_offset >> 16));
-                                    temp_signed_offset = (long long)temp_offset;
-                                }
-                                else
-                                {
-                                    temp_offset = (0x0000FFFFFFFFFFFF & (temp_offset >> 16));
-                                    temp_signed_offset = (long long)temp_offset;
-                                }
-
-                                if (temp_signed_offset == -4294967296) // negativ 0
-                                {
-                                    temp_signed_offset = 0;
-                                }
-
-                                // limit to one second in display
-                                if (temp_signed_offset >= 100000)
-                                {
-                                    temp_signed_offset = 100000;
-                                }
-                                else if (temp_signed_offset <= -100000)
-                                {
-                                    temp_signed_offset = -100000;
-                                }
-
-                                ntlts->ptpOc.CurrentDsOffsetValue->setText(QString::number(temp_signed_offset));
-
-                                if (true == ptp_oc_timer->isActive())
-                                {
-
-                                    ptp_oc_offset_series->append(ptp_oc_offset_number_of_points, temp_signed_offset);
-
-                                    if (ptp_oc_offset_number_of_points < 20)
-                                    {
-                                        ptp_oc_offset_number_of_points++;
-                                    }
-                                    else
-                                    {
-                                        for (int j = 1; j < ptp_oc_offset_series->count(); j++)
-                                        {
-                                            QPointF temp_point = ptp_oc_offset_series->at(j);
-                                            ptp_oc_offset_series->replace(j, (j - 1), temp_point.y());
-                                        }
-                                        ptp_oc_offset_series->remove(0);
-                                    }
-
-                                    temp_min = 0;
-                                    temp_max = 0;
-                                    for (int j = 0; j < ptp_oc_offset_series->count(); j++)
-                                    {
-                                        QPointF temp_point = ptp_oc_offset_series->at(j);
-                                        if (j == 0)
-                                        {
-                                            temp_min = temp_point.y();
-                                            temp_max = temp_point.y();
-                                        }
-                                        if (temp_min > temp_point.y())
-                                        {
-                                            temp_min = temp_point.y();
-                                        }
-                                        if (temp_max < temp_point.y())
-                                        {
-                                            temp_max = temp_point.y();
-                                        }
-                                    }
-                                    temp_max = ((temp_max / 100) + 1) * 100;
-                                    temp_min = ((temp_min / 100) - 1) * 100;
-                                    if (temp_max > 100000)
-                                    {
-                                        temp_max = 100000;
-                                    }
-                                    if (temp_min < -100000)
-                                    {
-                                        temp_min = -100000;
-                                    }
-                                    ptp_oc_offset_chart->axisY()->setMin(temp_min);
-                                    ptp_oc_offset_chart->axisY()->setMax(temp_max);
-
-                                    ptp_oc_offset_chart->show();
-                                }
+                                temp_offset = (0xFFFF000000000000 | (temp_offset >> 16));
+                                temp_signed_offset = (long long)temp_offset;
                             }
                             else
                             {
-                                ntlts->ptpOc.CurrentDsOffsetValue->setText("NA");
+                                temp_offset = (0x0000FFFFFFFFFFFF & (temp_offset >> 16));
+                                temp_signed_offset = (long long)temp_offset;
                             }
+
+                            if (temp_signed_offset == -4294967296) // negativ 0
+                            {
+                                temp_signed_offset = 0;
+                            }
+
+                            // limit to one second in display
+                            if (temp_signed_offset >= 100000)
+                            {
+                                temp_signed_offset = 100000;
+                            }
+                            else if (temp_signed_offset <= -100000)
+                            {
+                                temp_signed_offset = -100000;
+                            }
+
+                            // ntlts->ptpOc.CurrentDsOffsetValue->setText(QString::number(temp_signed_offset));
+
+                            ntlts->ptpOc.CurrentDsOffset = temp_signed_offset;
+
+                            // if (true == ptp_oc_timer->isActive())
+                            //{
+                            //
+                            //    ptp_oc_offset_series->append(ptp_oc_offset_number_of_points, temp_signed_offset);
+                            //
+                            //    if (ptp_oc_offset_number_of_points < 20)
+                            //    {
+                            //        ptp_oc_offset_number_of_points++;
+                            //    }
+                            //    else
+                            //    {
+                            //        for (int j = 1; j < ptp_oc_offset_series->count(); j++)
+                            //        {
+                            //            QPointF temp_point = ptp_oc_offset_series->at(j);
+                            //            ptp_oc_offset_series->replace(j, (j - 1), temp_point.y());
+                            //        }
+                            //        ptp_oc_offset_series->remove(0);
+                            //    }
+                            //
+                            //    temp_min = 0;
+                            //    temp_max = 0;
+                            //    for (int j = 0; j < ptp_oc_offset_series->count(); j++)
+                            //    {
+                            //        QPointF temp_point = ptp_oc_offset_series->at(j);
+                            //        if (j == 0)
+                            //        {
+                            //            temp_min = temp_point.y();
+                            //            temp_max = temp_point.y();
+                            //        }
+                            //        if (temp_min > temp_point.y())
+                            //        {
+                            //            temp_min = temp_point.y();
+                            //        }
+                            //        if (temp_max < temp_point.y())
+                            //        {
+                            //            temp_max = temp_point.y();
+                            //        }
+                            //    }
+                            //    temp_max = ((temp_max / 100) + 1) * 100;
+                            //    temp_min = ((temp_min / 100) - 1) * 100;
+                            //    if (temp_max > 100000)
+                            //    {
+                            //        temp_max = 100000;
+                            //    }
+                            //    if (temp_min < -100000)
+                            //    {
+                            //        temp_min = -100000;
+                            //    }
+                            //    ptp_oc_offset_chart->axisY()->setMin(temp_min);
+                            //    ptp_oc_offset_chart->axisY()->setMax(temp_max);
+                            //
+                            //    ptp_oc_offset_chart->show();
+                            //}
                         }
                         else
                         {
-                            ntlts->ptpOc.CurrentDsOffsetValue->setText("NA");
+                            // ntlts->ptpOc.CurrentDsOffsetValue->setText("NA");
                         }
-
-                        temp_string = ntlts->ptpOc.DelayMechanismValue->currentText();
-                        if (temp_string == "P2P")
-                        {
-                            // peer delay
-                            ntlts->ptpOc.CurrentDsDelayValue->setText("NA");
-                        }
-                        else if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDs4Reg, &temp_data))
-                        {
-                            // end to end delay
-                            temp_delay = temp_data;
-                            temp_delay = temp_delay << 32;
-                            if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDs5Reg, &temp_data))
-                            {
-                                temp_delay |= temp_data;
-                                temp_signed_delay = (long long)temp_delay;
-                                temp_signed_delay = temp_signed_delay >> 16;
-                                ntlts->ptpOc.CurrentDsDelayValue->setText(QString::number(temp_signed_delay));
-
-                                if (true == ptp_oc_timer->isActive())
-                                {
-                                    ptp_oc_delay_series->append(ptp_oc_delay_number_of_points, temp_signed_delay);
-
-                                    if (ptp_oc_delay_number_of_points < 20)
-                                    {
-                                        ptp_oc_delay_number_of_points++;
-                                    }
-                                    else
-                                    {
-                                        for (int j = 1; j < ptp_oc_delay_series->count(); j++)
-                                        {
-                                            QPointF temp_point = ptp_oc_delay_series->at(j);
-                                            ptp_oc_delay_series->replace(j, (j - 1), temp_point.y());
-                                        }
-                                        ptp_oc_delay_series->remove(0);
-                                    }
-
-                                    temp_min = 0;
-                                    temp_max = 0;
-                                    for (int j = 0; j < ptp_oc_delay_series->count(); j++)
-                                    {
-                                        QPointF temp_point = ptp_oc_delay_series->at(j);
-                                        if (j == 0)
-                                        {
-                                            temp_min = temp_point.y();
-                                            temp_max = temp_point.y();
-                                        }
-                                        if (temp_min > temp_point.y())
-                                        {
-                                            temp_min = temp_point.y();
-                                        }
-                                        if (temp_max < temp_point.y())
-                                        {
-                                            temp_max = temp_point.y();
-                                        }
-                                    }
-                                    temp_max = ((temp_max / 100) + 1) * 100;
-                                    temp_min = ((temp_min / 100) - 1) * 100;
-                                    // if (temp_min < 0)
-                                    //{
-                                    //     temp_min = 0;
-                                    // }
-                                    ptp_oc_delay_chart->axisY()->setMin(temp_min);
-                                    ptp_oc_delay_chart->axisY()->setMax(temp_max);
-
-                                    ptp_oc_delay_chart->show();
-                                }
-                            }
-                            else
-                            {
-                                ntlts->ptpOc.CurrentDsDelayValue->setText("NA");
-                            }
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.CurrentDsDelayValue->setText("NA");
-                        }
-
-                        break;
                     }
-                    else if (i == 9)
+                    else
                     {
-                        cout << "ERROR: " << "read did not complete" << endl;
-                        ntlts->ptpOc.CurrentDsStepsRemovedValue->setText("NA");
-                        ntlts->ptpOc.CurrentDsOffsetValue->setText("NA");
+                        // ntlts->ptpOc.CurrentDsOffsetValue->setText("NA");
+                        return -4;
                     }
+
+                    // temp_string = ntlts->ptpOc.DelayMechanismValue->currentText();
+                    if (strncmp(ntlts->ptpOc.DelayMechanism, "P2P", strlen("P2P")) == 0)
+                    // if (temp_string == "P2P")
+                    {
+                        // peer delay
+                        // ntlts->ptpOc.CurrentDsDelayValue->setText("NA");
+                        // ntlts->ptpOc.CurrentDsDelay =
+                    }
+                    else if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDs4Reg, &temp_data))
+                    {
+                        // end to end delay
+                        temp_delay = temp_data;
+                        temp_delay = temp_delay << 32;
+                        if (0 == read_reg(temp_addr + Ucm_PtpOc_CurrentDs5Reg, &temp_data))
+                        {
+                            temp_delay |= temp_data;
+                            temp_signed_delay = (long long)temp_delay;
+                            temp_signed_delay = temp_signed_delay >> 16;
+                            // ntlts->ptpOc.CurrentDsDelayValue->setText(QString::number(temp_signed_delay));
+
+                            ntlts->ptpOc.CurrentDsDelay = temp_signed_delay;
+
+                            // if (true == ptp_oc_timer->isActive())
+                            //{
+                            //     ptp_oc_delay_series->append(ptp_oc_delay_number_of_points, temp_signed_delay);
+                            //
+                            //    if (ptp_oc_delay_number_of_points < 20)
+                            //    {
+                            //        ptp_oc_delay_number_of_points++;
+                            //    }
+                            //    else
+                            //    {
+                            //        for (int j = 1; j < ptp_oc_delay_series->count(); j++)
+                            //        {
+                            //            QPointF temp_point = ptp_oc_delay_series->at(j);
+                            //            ptp_oc_delay_series->replace(j, (j - 1), temp_point.y());
+                            //        }
+                            //        ptp_oc_delay_series->remove(0);
+                            //    }
+                            //
+                            //    temp_min = 0;
+                            //    temp_max = 0;
+                            //    for (int j = 0; j < ptp_oc_delay_series->count(); j++)
+                            //    {
+                            //        QPointF temp_point = ptp_oc_delay_series->at(j);
+                            //        if (j == 0)
+                            //        {
+                            //            temp_min = temp_point.y();
+                            //            temp_max = temp_point.y();
+                            //        }
+                            //        if (temp_min > temp_point.y())
+                            //        {
+                            //            temp_min = temp_point.y();
+                            //        }
+                            //        if (temp_max < temp_point.y())
+                            //        {
+                            //            temp_max = temp_point.y();
+                            //        }
+                            //    }
+                            //    temp_max = ((temp_max / 100) + 1) * 100;
+                            //    temp_min = ((temp_min / 100) - 1) * 100;
+                            //    // if (temp_min < 0)
+                            //    //{
+                            //    //     temp_min = 0;
+                            //    // }
+                            //    ptp_oc_delay_chart->axisY()->setMin(temp_min);
+                            //    ptp_oc_delay_chart->axisY()->setMax(temp_max);
+                            //
+                            //    ptp_oc_delay_chart->show();
+                            //}
+                        }
+                        else
+                        {
+                            // ntlts->ptpOc.CurrentDsDelayValue->setText("NA");
+                        }
+                    }
+                    else
+                    {
+                        // ntlts->ptpOc.CurrentDsDelayValue->setText("NA");
+                    }
+
+                    break;
                 }
-                else
+                else if (i == 9)
                 {
-                    ntlts->ptpOc.CurrentDsStepsRemovedValue->setText("NA");
-                    ntlts->ptpOc.CurrentDsOffsetValue->setText("NA");
+                    // cout << "ERROR: " << "read did not complete" << endl;
+                    // ntlts->ptpOc.CurrentDsStepsRemovedValue->setText("NA");
+                    // ntlts->ptpOc.CurrentDsOffsetValue->setText("NA");
                 }
             }
-        }
-        else
-        {
-            ntlts->ptpOc.CurrentDsStepsRemovedValue->setText("NA");
-            ntlts->ptpOc.CurrentDsOffsetValue->setText("NA");
-        }
-
-        //********************************
-        // parent dataset
-        //********************************
-        temp_data = 0x40000000;
-        if (0 == write_reg(temp_addr + Ucm_PtpOc_ParentDsControlReg, &temp_data))
-        {
-            for (int i = 0; i < 10; i++)
+            else
             {
-                if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDsControlReg, &temp_data))
-                {
-                    if ((temp_data & 0x80000000) != 0)
-                    {
-
-                        // parent clock id and port id
-                        temp_string.clear();
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs1Reg, &temp_data))
-                        {
-                            temp_string.append(QString("%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                            temp_string.append(":");
-                            temp_string.append(QString("%1").arg(((temp_data >> 8) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                            temp_string.append(":");
-                            temp_string.append(QString("%1").arg(((temp_data >> 16) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                            temp_string.append(":");
-                            temp_string.append(QString("%1").arg(((temp_data >> 24) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                            temp_string.append(":");
-                            if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs2Reg, &temp_data))
-                            {
-                                temp_string.append(QString("%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                                temp_string.append(":");
-                                temp_string.append(QString("%1").arg(((temp_data >> 8) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                                temp_string.append(":");
-                                temp_string.append(QString("%1").arg(((temp_data >> 16) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                                temp_string.append(":");
-                                temp_string.append(QString("%1").arg(((temp_data >> 24) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                                temp_string.append(".");
-                                if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs3Reg, &temp_data))
-                                {
-                                    temp_string.append(QString("%1").arg(((temp_data >> 0) & 0x0000FFFF), 4, 16, QLatin1Char('0')));
-                                    ntlts->ptpOc.ParentDsParentClockIdValue->setText(temp_string);
-                                }
-                                else
-                                {
-                                    ntlts->ptpOc.ParentDsParentClockIdValue->setText("NA");
-                                }
-                            }
-                            else
-                            {
-                                ntlts->ptpOc.ParentDsParentClockIdValue->setText("NA");
-                            }
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.ParentDsParentClockIdValue->setText("NA");
-                        }
-
-                        // gm clock id
-                        temp_string.clear();
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs4Reg, &temp_data))
-                        {
-                            temp_string.append(QString("%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                            temp_string.append(":");
-                            temp_string.append(QString("%1").arg(((temp_data >> 8) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                            temp_string.append(":");
-                            temp_string.append(QString("%1").arg(((temp_data >> 16) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                            temp_string.append(":");
-                            temp_string.append(QString("%1").arg(((temp_data >> 24) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                            temp_string.append(":");
-                            if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs5Reg, &temp_data))
-                            {
-                                temp_string.append(QString("%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                                temp_string.append(":");
-                                temp_string.append(QString("%1").arg(((temp_data >> 8) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                                temp_string.append(":");
-                                temp_string.append(QString("%1").arg(((temp_data >> 16) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                                temp_string.append(":");
-                                temp_string.append(QString("%1").arg(((temp_data >> 24) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                                ntlts->ptpOc.ParentDsGmClockIdValue->setText(temp_string);
-                            }
-                            else
-                            {
-                                ntlts->ptpOc.ParentDsGmClockIdValue->setText("NA");
-                            }
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.ParentDsGmClockIdValue->setText("NA");
-                        }
-
-                        // gm priority 1 & 2
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs3Reg, &temp_data))
-                        {
-                            ntlts->ptpOc.ParentDsGmPriority2Value->setText(QString("0x%1").arg(((temp_data >> 16) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                            ntlts->ptpOc.ParentDsGmPriority1Value->setText(QString("0x%1").arg(((temp_data >> 24) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.ParentDsGmPriority1Value->setText("NA");
-                            ntlts->ptpOc.ParentDsGmPriority2Value->setText("NA");
-                        }
-
-                        // variance, accuracy ,class
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs6Reg, &temp_data))
-                        {
-                            ntlts->ptpOc.ParentDsGmVarianceValue->setText(QString("0x%1").arg(((temp_data >> 0) & 0x0000FFFF), 4, 16, QLatin1Char('0')));
-                            ntlts->ptpOc.ParentDsGmAccuracyValue->setText(QString::number(((temp_data >> 16) & 0x000000FF)));
-                            ntlts->ptpOc.ParentDsGmClassValue->setText(QString("0x%1").arg(((temp_data >> 24) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.ParentDsGmVarianceValue->setText("NA");
-                            ntlts->ptpOc.ParentDsGmAccuracyValue->setText("NA");
-                            ntlts->ptpOc.ParentDsGmClassValue->setText("NA");
-                        }
-
-                        // gm short id
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs7Reg, &temp_data))
-                        {
-                            ntlts->ptpOc.ParentDsGmShortIdValue->setText(QString("0x%1").arg(temp_data, 4, 16, QLatin1Char('0')));
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.ParentDsGmShortIdValue->setText("NA");
-                        }
-
-                        // gm inaccuracy
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs8Reg, &temp_data))
-                        {
-                            ntlts->ptpOc.ParentDsGmInaccuracyValue->setText(QString::number(temp_data));
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.ParentDsGmInaccuracyValue->setText("NA");
-                        }
-
-                        // nw inaccuracy
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs9Reg, &temp_data))
-                        {
-                            ntlts->ptpOc.ParentDsNwInaccuracyValue->setText(QString::number(temp_data));
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.ParentDsNwInaccuracyValue->setText("NA");
-                        }
-
-                        break;
-                    }
-                    else if (i == 9)
-                    {
-                        cout << "ERROR: " << "read did not complete" << endl;
-                        ntlts->ptpOc.ParentDsParentClockIdValue->setText("NA");
-                        ntlts->ptpOc.ParentDsGmClockIdValue->setText("NA");
-                        ntlts->ptpOc.ParentDsGmPriority1Value->setText("NA");
-                        ntlts->ptpOc.ParentDsGmPriority2Value->setText("NA");
-                        ntlts->ptpOc.ParentDsGmAccuracyValue->setText("NA");
-                        ntlts->ptpOc.ParentDsGmClassValue->setText("NA");
-                        ntlts->ptpOc.ParentDsGmShortIdValue->setText("NA");
-                        ntlts->ptpOc.ParentDsGmInaccuracyValue->setText("NA");
-                        ntlts->ptpOc.ParentDsNwInaccuracyValue->setText("NA");
-                    }
-                }
-                else
-                {
-                    ntlts->ptpOc.ParentDsParentClockIdValue->setText("NA");
-                    ntlts->ptpOc.ParentDsGmClockIdValue->setText("NA");
-                    ntlts->ptpOc.ParentDsGmPriority1Value->setText("NA");
-                    ntlts->ptpOc.ParentDsGmPriority2Value->setText("NA");
-                    ntlts->ptpOc.ParentDsGmAccuracyValue->setText("NA");
-                    ntlts->ptpOc.ParentDsGmClassValue->setText("NA");
-                    ntlts->ptpOc.ParentDsGmShortIdValue->setText("NA");
-                    ntlts->ptpOc.ParentDsGmInaccuracyValue->setText("NA");
-                    ntlts->ptpOc.ParentDsNwInaccuracyValue->setText("NA");
-                }
+                // ntlts->ptpOc.CurrentDsStepsRemovedValue->setText("NA");
+                // ntlts->ptpOc.CurrentDsOffsetValue->setText("NA");
             }
         }
-        else
-        {
-            ntlts->ptpOc.ParentDsParentClockIdValue->setText("NA");
-            ntlts->ptpOc.ParentDsGmClockIdValue->setText("NA");
-            ntlts->ptpOc.ParentDsGmPriority1Value->setText("NA");
-            ntlts->ptpOc.ParentDsGmPriority2Value->setText("NA");
-            ntlts->ptpOc.ParentDsGmAccuracyValue->setText("NA");
-            ntlts->ptpOc.ParentDsGmClassValue->setText("NA");
-            ntlts->ptpOc.ParentDsGmShortIdValue->setText("NA");
-            ntlts->ptpOc.ParentDsGmInaccuracyValue->setText("NA");
-            ntlts->ptpOc.ParentDsNwInaccuracyValue->setText("NA");
-        }
+    }
+    else
+    {
+        // ntlts->ptpOc.CurrentDsStepsRemovedValue->setText("NA");
+        // ntlts->ptpOc.CurrentDsOffsetValue->setText("NA");
+    }
 
-        //********************************
-        // time properties dataset
-        //********************************
-        ntlts->ptpOc.TimePropertiesDsSetLocalProperties = 0;
-        temp_data = 0x40000000;
-        if (0 == write_reg(temp_addr + Ucm_PtpOc_TimePropertiesDsControlReg, &temp_data))
+    //********************************
+    // parent dataset
+    //********************************
+    temp_data = 0x40000000;
+    if (0 == write_reg(temp_addr + Ucm_PtpOc_ParentDsControlReg, &temp_data))
+    {
+        for (int i = 0; i < 10; i++)
         {
-            for (int i = 0; i < 10; i++)
+            if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDsControlReg, &temp_data))
             {
-                if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDsControlReg, &temp_data))
+                if ((temp_data & 0x80000000) != 0)
                 {
-                    if ((temp_data & 0x80000000) != 0)
+
+                    // parent clock id and port id
+                    uint8_t temp_clock_id[8];
+                    memset(temp_clock_id, 0, sizeof(temp_clock_id));
+
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs1Reg, &temp_data))
                     {
+                        temp_clock_id[0] = ((temp_data >> 0) & 0x000000FF);
+                        temp_clock_id[1] = ((temp_data >> 8) & 0x000000FF);
+                        temp_clock_id[2] = ((temp_data >> 16) & 0x000000FF);
+                        temp_clock_id[3] = ((temp_data >> 24) & 0x000000FF);
 
-                        // time source, ptp timescale, freq traceable, time traceable, lep61, leap 59, ut offset val, utc offset
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs1Reg, &temp_data))
+                        if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs2Reg, &temp_data))
                         {
-                            ntlts->ptpOc.TimePropertiesDsTimeSourceValue->setText(QString("0x%1").arg(((temp_data >> 0) & 0x000000FF), 2, 16, QLatin1Char('0')));
-                            if ((temp_data & 0x00000100) != 0)
-                            {
-                                ntlts->ptpOc.TimePropertiesDsPtpTimescale = 1;
-                            }
-                            else
-                            {
-                                ntlts->ptpOc.TimePropertiesDsPtpTimescale = 0;
-                            }
-                            if ((temp_data & 0x00000200) != 0)
-                            {
-                                ntlts->ptpOc.TimePropertiesDsFreqTraceable = 1;
-                            }
-                            else
-                            {
-                                ntlts->ptpOc.TimePropertiesDsFreqTraceable = 0;
-                            }
-                            if ((temp_data & 0x00000400) != 0)
-                            {
-                                ntlts->ptpOc.TimePropertiesDsTimeTraceable = 1;
-                            }
-                            else
-                            {
-                                ntlts->ptpOc.TimePropertiesDsTimeTraceable = 0;
-                            }
-                            if ((temp_data & 0x00000800) != 0)
-                            {
-                                ntlts->ptpOc.TimePropertiesDsLeap61 = 1;
-                            }
-                            else
-                            {
-                                ntlts->ptpOc.TimePropertiesDsLeap61 = 0;
-                            }
-                            if ((temp_data & 0x00001000) != 0)
-                            {
-                                ntlts->ptpOc.TimePropertiesDsLeap59 = 1;
-                            }
-                            else
-                            {
-                                ntlts->ptpOc.TimePropertiesDsLeap59 = 0;
-                            }
-                            if ((temp_data & 0x00002000) != 0)
-                            {
-                                ntlts->ptpOc.TimePropertiesDsUtcOffsetVal = 1;
-                            }
-                            else
-                            {
-                                ntlts->ptpOc.TimePropertiesDsUtcOffsetVal = 0;
-                            }
+                            temp_clock_id[4] = ((temp_data >> 0) & 0x000000FF);
+                            temp_clock_id[5] = ((temp_data >> 8) & 0x000000FF);
+                            temp_clock_id[6] = ((temp_data >> 16) & 0x000000FF);
+                            temp_clock_id[7] = ((temp_data >> 24) & 0x000000FF);
 
-                            ntlts->ptpOc.TimePropertiesDsUtcOffsetValue->setText(QString::number((signed short)((temp_data >> 16) & 0x0000FFFF)));
+                            snprintf(ntlts->ptpOc.ParentDsParentClockId, sizeof(ntlts->ptpOc.ParentDsParentClockId),
+                                     "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x",
+                                     temp_clock_id[0], temp_clock_id[1], temp_clock_id[2], temp_clock_id[3],
+                                     temp_clock_id[4], temp_clock_id[5], temp_clock_id[6], temp_clock_id[7],
+                                     (temp_data >> 16) & 0x0000FFFF);
                         }
                         else
                         {
-                            ntlts->ptpOc.TimePropertiesDsTimeSourceValue->setText("NA");
+                            snprintf(ntlts->ptpOc.ParentDsParentClockId, sizeof(ntlts->ptpOc.ParentDsParentClockId), "NA");
+                        }
+                    }
+                    else
+                    {
+                        snprintf(ntlts->ptpOc.ParentDsParentClockId, sizeof(ntlts->ptpOc.ParentDsParentClockId), "NA");
+                    }
+
+                    memset(temp_clock_id, 0, sizeof(temp_clock_id));
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs4Reg, &temp_data))
+                    {
+                        temp_clock_id[0] = ((temp_data >> 0) & 0x000000FF);
+                        temp_clock_id[1] = ((temp_data >> 8) & 0x000000FF);
+                        temp_clock_id[2] = ((temp_data >> 16) & 0x000000FF);
+                        temp_clock_id[3] = ((temp_data >> 24) & 0x000000FF);
+                        if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs5Reg, &temp_data))
+                        {
+                            temp_clock_id[4] = ((temp_data >> 0) & 0x000000FF);
+                            temp_clock_id[5] = ((temp_data >> 8) & 0x000000FF);
+                            temp_clock_id[6] = ((temp_data >> 16) & 0x000000FF);
+                            temp_clock_id[7] = ((temp_data >> 24) & 0x000000FF);
+
+                            snprintf(ntlts->ptpOc.ParentDsGmClockId, sizeof(ntlts->ptpOc.ParentDsGmClockId),
+                                     "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+                                     temp_clock_id[0], temp_clock_id[1], temp_clock_id[2], temp_clock_id[3],
+                                     temp_clock_id[4], temp_clock_id[5], temp_clock_id[6], temp_clock_id[7]);
+                        }
+                        else
+                        {
+                            snprintf(ntlts->ptpOc.ParentDsGmClockId, sizeof(ntlts->ptpOc.ParentDsGmClockId), "NA");
+                        }
+                    }
+                    else
+                    {
+                        snprintf(ntlts->ptpOc.ParentDsGmClockId, sizeof(ntlts->ptpOc.ParentDsGmClockId), "NA");
+                    }
+
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs3Reg, &temp_data))
+                    {
+                        ntlts->ptpOc.ParentDsGmPriority2 = ((temp_data >> 16) & 0x000000FF);
+                        ntlts->ptpOc.ParentDsGmPriority1 = ((temp_data >> 24) & 0x000000FF);
+                    }
+                    else
+                    {
+                        ntlts->ptpOc.ParentDsGmPriority1 = 0;
+                        ntlts->ptpOc.ParentDsGmPriority2 = 0;
+                    }
+
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs6Reg, &temp_data))
+                    {
+                        ntlts->ptpOc.ParentDsGmVariance = ((temp_data >> 0) & 0x0000FFFF);
+                        ntlts->ptpOc.ParentDsGmAccuracy = ((temp_data >> 16) & 0x000000FF);
+                        ntlts->ptpOc.ParentDsGmClass = ((temp_data >> 24) & 0x000000FF);
+                    }
+                    else
+                    {
+                        ntlts->ptpOc.ParentDsGmVariance = 0;
+                        ntlts->ptpOc.ParentDsGmAccuracy = 0;
+                        ntlts->ptpOc.ParentDsGmClass = 0;
+                    }
+
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs7Reg, &temp_data))
+                    {
+                        ntlts->ptpOc.ParentDsGmShortId = temp_data;
+                    }
+                    else
+                    {
+                        ntlts->ptpOc.ParentDsGmShortId = 0;
+                    }
+
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs8Reg, &temp_data))
+                    {
+                        ntlts->ptpOc.ParentDsGmInaccuracy = temp_data;
+                    }
+                    else
+                    {
+                        ntlts->ptpOc.ParentDsGmInaccuracy = 0;
+                    }
+
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_ParentDs9Reg, &temp_data))
+                    {
+                        ntlts->ptpOc.ParentDsNwInaccuracy = temp_data;
+                    }
+                    else
+                    {
+                        ntlts->ptpOc.ParentDsNwInaccuracy = 0;
+                    }
+
+                    break;
+                }
+                else if (i == 9)
+                {
+                    // cout << "ERROR: " << "read did not complete" << endl;
+                    //        ntlts->ptpOc.ParentDsParentClockIdValue->setText("NA");
+                    //        ntlts->ptpOc.ParentDsGmClockIdValue->setText("NA");
+                    //        ntlts->ptpOc.ParentDsGmPriority1Value->setText("NA");
+                    //        ntlts->ptpOc.ParentDsGmPriority2Value->setText("NA");
+                    //        ntlts->ptpOc.ParentDsGmAccuracyValue->setText("NA");
+                    //        ntlts->ptpOc.ParentDsGmClassValue->setText("NA");
+                    //        ntlts->ptpOc.ParentDsGmShortIdValue->setText("NA");
+                    //        ntlts->ptpOc.ParentDsGmInaccuracyValue->setText("NA");
+                    //        ntlts->ptpOc.ParentDsNwInaccuracyValue->setText("NA");
+                }
+            }
+            else
+            {
+                //      ntlts->ptpOc.ParentDsParentClockIdValue->setText("NA");
+                //      ntlts->ptpOc.ParentDsGmClockIdValue->setText("NA");
+                //      ntlts->ptpOc.ParentDsGmPriority1Value->setText("NA");
+                //      ntlts->ptpOc.ParentDsGmPriority2Value->setText("NA");
+                //      ntlts->ptpOc.ParentDsGmAccuracyValue->setText("NA");
+                //      ntlts->ptpOc.ParentDsGmClassValue->setText("NA");
+                //      ntlts->ptpOc.ParentDsGmShortIdValue->setText("NA");
+                //      ntlts->ptpOc.ParentDsGmInaccuracyValue->setText("NA");
+                //      ntlts->ptpOc.ParentDsNwInaccuracyValue->setText("NA");
+            }
+        }
+    }
+    else
+    {
+        // ntlts->ptpOc.ParentDsParentClockIdValue->setText("NA");
+        // ntlts->ptpOc.ParentDsGmClockIdValue->setText("NA");
+        // ntlts->ptpOc.ParentDsGmPriority1Value->setText("NA");
+        // ntlts->ptpOc.ParentDsGmPriority2Value->setText("NA");
+        // ntlts->ptpOc.ParentDsGmAccuracyValue->setText("NA");
+        // ntlts->ptpOc.ParentDsGmClassValue->setText("NA");
+        // ntlts->ptpOc.ParentDsGmShortIdValue->setText("NA");
+        // ntlts->ptpOc.ParentDsGmInaccuracyValue->setText("NA");
+        // ntlts->ptpOc.ParentDsNwInaccuracyValue->setText("NA");
+    }
+
+    //********************************
+    // time properties dataset
+    //********************************
+    ntlts->ptpOc.TimePropertiesDsSetLocalProperties = 0;
+    temp_data = 0x40000000;
+    if (0 == write_reg(temp_addr + Ucm_PtpOc_TimePropertiesDsControlReg, &temp_data))
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDsControlReg, &temp_data))
+            {
+                if ((temp_data & 0x80000000) != 0)
+                {
+
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs1Reg, &temp_data))
+                    {
+                        ntlts->ptpOc.TimePropertiesDsTimeSource = ((temp_data >> 0) & 0x000000FF);
+                        if ((temp_data & 0x00000100) != 0)
+                        {
+                            ntlts->ptpOc.TimePropertiesDsPtpTimescale = 1;
+                        }
+                        else
+                        {
                             ntlts->ptpOc.TimePropertiesDsPtpTimescale = 0;
+                        }
+                        if ((temp_data & 0x00000200) != 0)
+                        {
+                            ntlts->ptpOc.TimePropertiesDsFreqTraceable = 1;
+                        }
+                        else
+                        {
                             ntlts->ptpOc.TimePropertiesDsFreqTraceable = 0;
+                        }
+                        if ((temp_data & 0x00000400) != 0)
+                        {
+                            ntlts->ptpOc.TimePropertiesDsTimeTraceable = 1;
+                        }
+                        else
+                        {
                             ntlts->ptpOc.TimePropertiesDsTimeTraceable = 0;
-                            ntlts->ptpOc.TimePropertiesDsLeap59 = 0;
+                        }
+                        if ((temp_data & 0x00000800) != 0)
+                        {
+                            ntlts->ptpOc.TimePropertiesDsLeap61 = 1;
+                        }
+                        else
+                        {
                             ntlts->ptpOc.TimePropertiesDsLeap61 = 0;
+                        }
+                        if ((temp_data & 0x00001000) != 0)
+                        {
+                            ntlts->ptpOc.TimePropertiesDsLeap59 = 1;
+                        }
+                        else
+                        {
+                            ntlts->ptpOc.TimePropertiesDsLeap59 = 0;
+                        }
+                        if ((temp_data & 0x00002000) != 0)
+                        {
+                            ntlts->ptpOc.TimePropertiesDsUtcOffsetVal = 1;
+                        }
+                        else
+                        {
                             ntlts->ptpOc.TimePropertiesDsUtcOffsetVal = 0;
-                            ntlts->ptpOc.TimePropertiesDsUtcOffsetValue->setText("NA");
                         }
 
-                        // current offset
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs2Reg, &temp_data))
-                        {
-                            ntlts->ptpOc.TimePropertiesDsCurrentOffsetValue->setText(QString::number((int)temp_data));
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.TimePropertiesDsCurrentOffsetValue->setText("NA");
-                        }
-
-                        // jump seconds
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs3Reg, &temp_data))
-                        {
-                            ntlts->ptpOc.TimePropertiesDsJumpSecondsValue->setText(QString::number((int)temp_data));
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.TimePropertiesDsJumpSecondsValue->setText("NA");
-                        }
-
-                        // next jump
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs4Reg, &temp_data))
-                        {
-                            temp_next_jump = temp_data;
-                            temp_next_jump = temp_next_jump << 32;
-                            if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs5Reg, &temp_data))
-                            {
-                                temp_next_jump |= temp_data;
-                                ntlts->ptpOc.TimePropertiesDsNextJumpValue->setText(QString::number(temp_next_jump));
-                            }
-                            else
-                            {
-                                ntlts->ptpOc.TimePropertiesDsNextJumpValue->setText("NA");
-                            }
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.TimePropertiesDsNextJumpValue->setText("NA");
-                        }
-
-                        // display name
-                        temp_string.clear();
-                        if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs6Reg, temp_length))
-                        {
-                            for (int j = 0; j < 3; j++)
-                            {
-                                if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs7Reg + (j * 4), &temp_data))
-                                {
-                                    temp_string.append((QChar)((temp_data >> 0) & 0x000000FF));
-                                    temp_string.append((QChar)((temp_data >> 8) & 0x000000FF));
-                                    temp_string.append((QChar)((temp_data >> 16) & 0x000000FF));
-                                    temp_string.append((QChar)((temp_data >> 24) & 0x000000FF));
-                                }
-                                else
-                                {
-                                    temp_string.clear();
-                                    temp_string.append("NA");
-                                    break;
-                                }
-                            }
-                            temp_string.truncate(temp_length);
-                            ntlts->ptpOc.TimePropertiesDsDisplayNameValue->setText(temp_string);
-                        }
-                        else
-                        {
-                            ntlts->ptpOc.TimePropertiesDsDisplayNameValue->setText("NA");
-                        }
-                        break;
+                        ntlts->ptpOc.TimePropertiesDsUtcOffset = (int16_t)((temp_data >> 16) & 0x0000FFFF);
                     }
-                    else if (i == 9)
+                    else
                     {
-                        cout << "ERROR: " << "read did not complete" << endl;
-                        ntlts->ptpOc.TimePropertiesDsTimeSourceValue->setText("NA");
+                        ntlts->ptpOc.TimePropertiesDsTimeSource = 0;
                         ntlts->ptpOc.TimePropertiesDsPtpTimescale = 0;
                         ntlts->ptpOc.TimePropertiesDsFreqTraceable = 0;
                         ntlts->ptpOc.TimePropertiesDsTimeTraceable = 0;
                         ntlts->ptpOc.TimePropertiesDsLeap59 = 0;
                         ntlts->ptpOc.TimePropertiesDsLeap61 = 0;
                         ntlts->ptpOc.TimePropertiesDsUtcOffsetVal = 0;
-                        ntlts->ptpOc.TimePropertiesDsUtcOffsetValue->setText("NA");
-                        ntlts->ptpOc.TimePropertiesDsCurrentOffsetValue->setText("NA");
-                        ntlts->ptpOc.TimePropertiesDsJumpSecondsValue->setText("NA");
-                        ntlts->ptpOc.TimePropertiesDsNextJumpValue->setText("NA");
-                        ntlts->ptpOc.TimePropertiesDsDisplayNameValue->setText("NA");
+                        ntlts->ptpOc.TimePropertiesDsUtcOffset = 0;
                     }
+
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs2Reg, &temp_data))
+                    {
+                        ntlts->ptpOc.TimePropertiesDsCurrentOffset = (int32_t)temp_data;
+                    }
+                    else
+                    {
+                        ntlts->ptpOc.TimePropertiesDsCurrentOffset = 0;
+                    }
+
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs3Reg, &temp_data))
+                    {
+                        ntlts->ptpOc.TimePropertiesDsJumpSeconds = (int32_t)temp_data;
+                    }
+                    else
+                    {
+                        ntlts->ptpOc.TimePropertiesDsJumpSeconds = 0;
+                    }
+
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs4Reg, &temp_data))
+                    {
+                        temp_next_jump = temp_data;
+                        temp_next_jump = temp_next_jump << 32;
+                        if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs5Reg, &temp_data))
+                        {
+                            temp_next_jump |= temp_data;
+                            ntlts->ptpOc.TimePropertiesDsNextJump = temp_next_jump;
+                        }
+                        else
+                        {
+                            ntlts->ptpOc.TimePropertiesDsNextJump = 0;
+                        }
+                    }
+                    else
+                    {
+                        ntlts->ptpOc.TimePropertiesDsNextJump = 0;
+                    }
+
+                    memset(temp_string, 0, STRING_SIZE);
+                    temp_length = 0;
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs6Reg, &temp_data))
+                    {
+                        temp_length = (uint8_t)(temp_data & 0x000000FF);
+                        if (temp_length > 16)
+                            temp_length = 16;
+
+                        for (int j = 0; j < 3; j++)
+                        {
+                            if (0 == read_reg(temp_addr + Ucm_PtpOc_TimePropertiesDs7Reg + (j * 4), &temp_data))
+                            {
+                                temp_string[j * 4 + 0] = (uint8_t)((temp_data >> 0) & 0x000000FF);
+                                temp_string[j * 4 + 1] = (uint8_t)((temp_data >> 8) & 0x000000FF);
+                                temp_string[j * 4 + 2] = (uint8_t)((temp_data >> 16) & 0x000000FF);
+                                temp_string[j * 4 + 3] = (uint8_t)((temp_data >> 24) & 0x000000FF);
+                            }
+                            else
+                            {
+                                memset(temp_string, 0, STRING_SIZE);
+                                snprintf(ntlts->ptpOc.TimePropertiesDsDisplayName, sizeof(ntlts->ptpOc.TimePropertiesDsDisplayName), "NA");
+                                break;
+                            }
+                        }
+                        temp_string[temp_length] = '\0';
+                        snprintf(ntlts->ptpOc.TimePropertiesDsDisplayName, sizeof(ntlts->ptpOc.TimePropertiesDsDisplayName), "%s", temp_string);
+                    }
+                    else
+                    {
+                        snprintf(ntlts->ptpOc.TimePropertiesDsDisplayName, sizeof(ntlts->ptpOc.TimePropertiesDsDisplayName), "NA");
+                    }
+                    break;
                 }
-                else
+                else if (i == 9)
                 {
-                    ntlts->ptpOc.TimePropertiesDsTimeSourceValue->setText("NA");
-                    ntlts->ptpOc.TimePropertiesDsPtpTimescale = 0;
-                    ntlts->ptpOc.TimePropertiesDsFreqTraceable = 0;
-                    ntlts->ptpOc.TimePropertiesDsTimeTraceable = 0;
-                    ntlts->ptpOc.TimePropertiesDsLeap59 = 0;
-                    ntlts->ptpOc.TimePropertiesDsLeap61 = 0;
-                    ntlts->ptpOc.TimePropertiesDsUtcOffsetVal = 0;
-                    ntlts->ptpOc.TimePropertiesDsUtcOffsetValue->setText("NA");
-                    ntlts->ptpOc.TimePropertiesDsCurrentOffsetValue->setText("NA");
-                    ntlts->ptpOc.TimePropertiesDsJumpSecondsValue->setText("NA");
-                    ntlts->ptpOc.TimePropertiesDsNextJumpValue->setText("NA");
-                    ntlts->ptpOc.TimePropertiesDsDisplayNameValue->setText("NA");
                 }
             }
+            else
+            {
+            }
         }
-        else
-        {
-            ntlts->ptpOc.TimePropertiesDsTimeSourceValue->setText("NA");
-            ntlts->ptpOc.TimePropertiesDsPtpTimescale = 0;
-            ntlts->ptpOc.TimePropertiesDsFreqTraceable = 0;
-            ntlts->ptpOc.TimePropertiesDsTimeTraceable = 0;
-            ntlts->ptpOc.TimePropertiesDsLeap59 = 0;
-            ntlts->ptpOc.TimePropertiesDsLeap61 = 0;
-            ntlts->ptpOc.TimePropertiesDsUtcOffsetVal = 0;
-            ntlts->ptpOc.TimePropertiesDsUtcOffsetValue->setText("NA");
-            ntlts->ptpOc.TimePropertiesDsCurrentOffsetValue->setText("NA");
-            ntlts->ptpOc.TimePropertiesDsJumpSecondsValue->setText("NA");
-            ntlts->ptpOc.TimePropertiesDsNextJumpValue->setText("NA");
-            ntlts->ptpOc.TimePropertiesDsDisplayNameValue->setText("NA");
-        }
-            */
+    }
+    else
+    {
+    }
 
     // version
     if (0 == read_reg(temp_addr + Ucm_PtpOc_VersionReg, &temp_data))
@@ -1477,7 +1430,7 @@ int8_t ptp_oc_read_values(NTL_TS_T *ntlts)
     }
     else
     {
-        ntlts->ptpOc.Version = temp_data;
+        ntlts->ptpOc.Version = 0;
     }
 
     return 0;

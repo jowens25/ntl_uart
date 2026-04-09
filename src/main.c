@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
     printf("DefaultDsMasterOnly: %d\r\n", ntlts.ptpOc.DefaultDsMasterOnly);   // uint8_t
     printf("Version: 0x%08x\r\n", ntlts.ptpOc.Version);
 
-    printf("PortDsPeerDelay: %d\r\n", ntlts.ptpOc.PortDsPeerDelay);
+    printf("PortDsPeerDelay: %ld\r\n", ntlts.ptpOc.PortDsPeerDelay);
     printf("PortDsState: %s\r\n", ntlts.ptpOc.PortDsState);
     printf("PortDsAsymmetry: %d\r\n", ntlts.ptpOc.PortDsAsymmetry);
     printf("PortDsMaxPeerDelay: %d\r\n", ntlts.ptpOc.PortDsMaxPeerDelay);
@@ -237,6 +237,35 @@ int main(int argc, char *argv[])
     printf("PortDsAnnounceReceiptTimeout: %d\r\n", ntlts.ptpOc.PortDsAnnounceReceiptTimeout);
     printf("PortDsSyncLogMsgInterval: %d\r\n", ntlts.ptpOc.PortDsSyncLogMsgInterval);
     printf("PortDsSyncReceiptTimeout: %d\r\n", ntlts.ptpOc.PortDsSyncReceiptTimeout);
+
+    printf("CurrentDsStepsRemoved: %d\r\n", ntlts.ptpOc.CurrentDsStepsRemoved);
+    printf("CurrentDsOffset: %d\r\n", ntlts.ptpOc.CurrentDsOffset);
+    printf("CurrentDsDelay: %ld\r\n", ntlts.ptpOc.CurrentDsDelay);
+
+    printf("ParentDsParentClockId: %s\r\n", ntlts.ptpOc.ParentDsParentClockId);
+    printf("ParentDsGmClockId: %s\r\n", ntlts.ptpOc.ParentDsGmClockId);
+    printf("ParentDsGmPriority1: 0x%02x\r\n", ntlts.ptpOc.ParentDsGmPriority1);
+    printf("ParentDsGmPriority2: 0x%02x\r\n", ntlts.ptpOc.ParentDsGmPriority2);
+    printf("ParentDsGmVariance: 0x%04x\r\n", ntlts.ptpOc.ParentDsGmVariance);
+    printf("ParentDsGmAccuracy: %d\r\n", ntlts.ptpOc.ParentDsGmAccuracy);
+    printf("ParentDsGmClass: 0x%02x\r\n", ntlts.ptpOc.ParentDsGmClass);
+    printf("ParentDsGmShortId: 0x%04x\r\n", ntlts.ptpOc.ParentDsGmShortId);
+    printf("ParentDsGmInaccuracy: %u\r\n", ntlts.ptpOc.ParentDsGmInaccuracy);
+    printf("ParentDsNwInaccuracy: %u\r\n", ntlts.ptpOc.ParentDsNwInaccuracy);
+
+    printf("TimePropertiesDsTimeSource: 0x%02x\r\n", ntlts.ptpOc.TimePropertiesDsTimeSource);
+    printf("TimePropertiesDsPtpTimescale: %d\r\n", ntlts.ptpOc.TimePropertiesDsPtpTimescale);
+    printf("TimePropertiesDsFreqTraceable: %d\r\n", ntlts.ptpOc.TimePropertiesDsFreqTraceable);
+    printf("TimePropertiesDsTimeTraceable: %d\r\n", ntlts.ptpOc.TimePropertiesDsTimeTraceable);
+    printf("TimePropertiesDsLeap59: %d\r\n", ntlts.ptpOc.TimePropertiesDsLeap59);
+    printf("TimePropertiesDsLeap61: %d\r\n", ntlts.ptpOc.TimePropertiesDsLeap61);
+    printf("TimePropertiesDsUtcOffsetVal: %d\r\n", ntlts.ptpOc.TimePropertiesDsUtcOffsetVal);
+    printf("TimePropertiesDsUtcOffset: %d\r\n", ntlts.ptpOc.TimePropertiesDsUtcOffset);
+    printf("TimePropertiesDsCurrentOffset: %d\r\n", ntlts.ptpOc.TimePropertiesDsCurrentOffset);
+    printf("TimePropertiesDsJumpSeconds: %d\r\n", ntlts.ptpOc.TimePropertiesDsJumpSeconds);
+    printf("TimePropertiesDsNextJump: %lu\r\n", ntlts.ptpOc.TimePropertiesDsNextJump);
+    printf("TimePropertiesDsDisplayName: %s\r\n", ntlts.ptpOc.TimePropertiesDsDisplayName);
+    printf("TimePropertiesDsSetLocalProperties: %d\r\n", ntlts.ptpOc.TimePropertiesDsSetLocalProperties);
 
     printf("==============================================\n");
 
@@ -274,7 +303,7 @@ int main(int argc, char *argv[])
     printf("DefaultDsMasterOnly: %d\r\n", ntlts.ptpOc.DefaultDsMasterOnly);   // uint8_t
     printf("Version: 0x%08x\r\n", ntlts.ptpOc.Version);
 
-    printf("PortDsPeerDelay: %d\r\n", ntlts.ptpOc.PortDsPeerDelay);
+    printf("PortDsPeerDelay: %ld\r\n", ntlts.ptpOc.PortDsPeerDelay);
     printf("PortDsState: %s\r\n", ntlts.ptpOc.PortDsState);
     printf("PortDsAsymmetry: %d\r\n", ntlts.ptpOc.PortDsAsymmetry);
     printf("PortDsMaxPeerDelay: %d\r\n", ntlts.ptpOc.PortDsMaxPeerDelay);
@@ -285,6 +314,35 @@ int main(int argc, char *argv[])
     printf("PortDsAnnounceReceiptTimeout: %d\r\n", ntlts.ptpOc.PortDsAnnounceReceiptTimeout);
     printf("PortDsSyncLogMsgInterval: %d\r\n", ntlts.ptpOc.PortDsSyncLogMsgInterval);
     printf("PortDsSyncReceiptTimeout: %d\r\n", ntlts.ptpOc.PortDsSyncReceiptTimeout);
+
+    printf("CurrentDsStepsRemoved: %d\r\n", ntlts.ptpOc.CurrentDsStepsRemoved);
+    printf("CurrentDsOffset: %d\r\n", ntlts.ptpOc.CurrentDsOffset);
+    printf("CurrentDsDelay: %ld\r\n", ntlts.ptpOc.CurrentDsDelay);
+
+    printf("ParentDsParentClockId: %s\r\n", ntlts.ptpOc.ParentDsParentClockId);
+    printf("ParentDsGmClockId: %s\r\n", ntlts.ptpOc.ParentDsGmClockId);
+    printf("ParentDsGmPriority1: 0x%02x\r\n", ntlts.ptpOc.ParentDsGmPriority1);
+    printf("ParentDsGmPriority2: 0x%02x\r\n", ntlts.ptpOc.ParentDsGmPriority2);
+    printf("ParentDsGmVariance: 0x%04x\r\n", ntlts.ptpOc.ParentDsGmVariance);
+    printf("ParentDsGmAccuracy: %d\r\n", ntlts.ptpOc.ParentDsGmAccuracy);
+    printf("ParentDsGmClass: 0x%02x\r\n", ntlts.ptpOc.ParentDsGmClass);
+    printf("ParentDsGmShortId: 0x%04x\r\n", ntlts.ptpOc.ParentDsGmShortId);
+    printf("ParentDsGmInaccuracy: %u\r\n", ntlts.ptpOc.ParentDsGmInaccuracy);
+    printf("ParentDsNwInaccuracy: %u\r\n", ntlts.ptpOc.ParentDsNwInaccuracy);
+
+    printf("TimePropertiesDsTimeSource: 0x%02x\r\n", ntlts.ptpOc.TimePropertiesDsTimeSource);
+    printf("TimePropertiesDsPtpTimescale: %d\r\n", ntlts.ptpOc.TimePropertiesDsPtpTimescale);
+    printf("TimePropertiesDsFreqTraceable: %d\r\n", ntlts.ptpOc.TimePropertiesDsFreqTraceable);
+    printf("TimePropertiesDsTimeTraceable: %d\r\n", ntlts.ptpOc.TimePropertiesDsTimeTraceable);
+    printf("TimePropertiesDsLeap59: %d\r\n", ntlts.ptpOc.TimePropertiesDsLeap59);
+    printf("TimePropertiesDsLeap61: %d\r\n", ntlts.ptpOc.TimePropertiesDsLeap61);
+    printf("TimePropertiesDsUtcOffsetVal: %d\r\n", ntlts.ptpOc.TimePropertiesDsUtcOffsetVal);
+    printf("TimePropertiesDsUtcOffset: %d\r\n", ntlts.ptpOc.TimePropertiesDsUtcOffset);
+    printf("TimePropertiesDsCurrentOffset: %d\r\n", ntlts.ptpOc.TimePropertiesDsCurrentOffset);
+    printf("TimePropertiesDsJumpSeconds: %d\r\n", ntlts.ptpOc.TimePropertiesDsJumpSeconds);
+    printf("TimePropertiesDsNextJump: %lu\r\n", ntlts.ptpOc.TimePropertiesDsNextJump);
+    printf("TimePropertiesDsDisplayName: %s\r\n", ntlts.ptpOc.TimePropertiesDsDisplayName);
+    printf("TimePropertiesDsSetLocalProperties: %d\r\n", ntlts.ptpOc.TimePropertiesDsSetLocalProperties);
     printf("==============================================\n");
     //
     //*/
