@@ -1532,7 +1532,7 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         {
             temp_data |= 0x00000000;
 
-            return -8;
+            // return -8; return not needed?
         }
 
         if (false)
@@ -1633,21 +1633,28 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
                 //        break;
                 //    }
                 //
-                //    switch ((temp_data >> 16) & 0x00000003)
-                //    {
-                //    case 0:
-                //        ui->PtpOcLayerValue->setCurrentText("Layer 2");
-                //        break;
-                //    case 1:
-                //        ui->PtpOcLayerValue->setCurrentText("Layer 3v4");
-                //        break;
-                //    case 2:
-                //        ui->PtpOcLayerValue->setCurrentText("Layer 3v6");
-                //        break;
-                //    default:
-                //        ui->PtpOcLayerValue->setCurrentText("NA");
-                //        break;
-                //    }
+                switch ((temp_data >> 16) & 0x00000003)
+                {
+                case 0:
+                    // ui->PtpOcLayerValue->setCurrentText("Layer 2");
+                    snprintf(ntlts->ptpOc.Layer, sizeof(ntlts->ptpOc.Layer), "Layer 2");
+                    break;
+                case 1:
+                    // ui->PtpOcLayerValue->setCurrentText("Layer 3v4");
+                    snprintf(ntlts->ptpOc.Layer, sizeof(ntlts->ptpOc.Layer), "Layer 3v4");
+
+                    break;
+                case 2:
+                    // ui->PtpOcLayerValue->setCurrentText("Layer 3v6");
+                    snprintf(ntlts->ptpOc.Layer, sizeof(ntlts->ptpOc.Layer), "Layer 3v6");
+
+                    break;
+                default:
+                    // ui->PtpOcLayerValue->setCurrentText("NA");
+                    snprintf(ntlts->ptpOc.Layer, sizeof(ntlts->ptpOc.Layer), "NA");
+
+                    break;
+                }
                 //
                 //    switch ((temp_data >> 20) & 0x00000003)
                 //    {
@@ -1827,10 +1834,14 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     {
         int32_t temp_ip[4] = {0};
 
+        char temp_string[64] = {0};
+
+        memcpy(temp_string, ntlts->ptpOc.ipAddr, sizeof(temp_string));
+
         char *token;
         for (int i = 0; i < 4; i++)
         {
-            token = (i == 0) ? strtok(ntlts->ptpOc.ipAddr, ".") : strtok(NULL, ".");
+            token = (i == 0) ? strtok(temp_string, ".") : strtok(NULL, ".");
             if (token == NULL)
                 break;
             temp_ip[i] = strtol(token, NULL, 10);
@@ -1879,14 +1890,16 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         // temp_ip6 = QHostAddress(temp_string).toIPv6Address();
 
         long temp_ip6[16] = {0};
+        char temp_string[64] = {0};
 
+        memcpy(temp_string, ntlts->ptpOc.ipAddr, sizeof(temp_string));
         char *token;
         char *err;
         char byte[3];
         for (int i = 0; i < 32; i += 2)
         {
 
-            token = (i == 0) ? strtok(ntlts->ntpServer.ipAddr, ":") : strtok(NULL, ":");
+            token = (i == 0) ? strtok(temp_string, ":") : strtok(NULL, ":");
             if (token == NULL)
                 break;
 
@@ -1923,7 +1936,7 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
             temp_data = ntlts->ptpRegs.ConfigIpReg;
         }
 
-        if (strncmp(ntlts->ntpServer.ipAddr, "NA", strlen("NA")) == 0)
+        if (strncmp(ntlts->ptpOc.ipAddr, "NA", strlen("NA")) == 0)
         {
             // nothing
         }
@@ -1943,7 +1956,7 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
                 temp_data = ntlts->ptpRegs.ConfigIpv61Reg;
             }
 
-            if (strncmp(ntlts->ntpServer.ipAddr, "NA", strlen("NA")) == 0)
+            if (strncmp(ntlts->ptpOc.ipAddr, "NA", strlen("NA")) == 0)
             {
                 // nothing
             }
@@ -1963,7 +1976,7 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
                     temp_data = ntlts->ptpRegs.ConfigIpv62Reg;
                 }
 
-                if (strncmp(ntlts->ntpServer.ipAddr, "NA", strlen("NA")) == 0)
+                if (strncmp(ntlts->ptpOc.ipAddr, "NA", strlen("NA")) == 0)
                 {
                     // nothing
                 }
@@ -1983,7 +1996,7 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
                         temp_data = ntlts->ptpRegs.ConfigIpv63Reg;
                     }
 
-                    if (strncmp(ntlts->ntpServer.ipAddr, "NA", strlen("NA")) == 0)
+                    if (strncmp(ntlts->ptpOc.ipAddr, "NA", strlen("NA")) == 0)
                     {
                         // nothing
                     }

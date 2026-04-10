@@ -14,21 +14,19 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/select.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <syslog.h>
-
-#else
-#include "uartCircBuff.h"
-#endif
-
 #include "stdlib.h"
 #include "string.h"
 #include "stdbool.h"
+#else
+#include "uartCircBuff.h"
+#include "uart.h"
+#endif
 
 volatile int ntlRspReceived = 0;
 volatile int ntlCmdReceived = 0;
@@ -81,82 +79,111 @@ int get_length_by_char(char *myString, char *myChar)
 
 #ifndef USE_SOCKET
 
-void NTL_COM_HANDLER(void)
+void fpga_read_all(void)
+{
+    clk_clock_read_values(&ntlts);
+    tod_slave_read_values(&ntlts);
+    pps_slave_read_values(&ntlts);
+    ptp_oc_read_values(&ntlts);
+    ntp_server_read_values(&ntlts);
+}
+
+void fpga_write_all(uint8_t fromRegisters)
+{
+    clk_clock_write_values(&ntlts, fromRegisters);
+    tod_slave_write_values(&ntlts, fromRegisters);
+    pps_slave_write_values(&ntlts, fromRegisters);
+    ptp_oc_write_values(&ntlts, fromRegisters);
+    ntp_server_write_values(&ntlts, fromRegisters);
+}
+
+void NTL_COM_HANDLER(char *temp_rsp, uint32_t rsp_size)
 {
 
-    // GPNTL,op,module,data
-
-    if (strncmp(gpntlBuff, "NTPGET", 6) == 0)
-    {
-
-        char buff[64] = {0};
-
-        snprintf(buff, 63, "%s\r\n", ntlts.ntpServer.ipAddr);
-
-        UART0_SendBuff(buff, 64);
-        return;
-    }
-
-    char *tok;
-    // int field = 0;
-
     gpntlBuff[sizeof(gpntlBuff) - 1] = '\0';
+    char *mod = strtok(gpntlBuff, ","); // return "NTP"
+    char *prop = strtok(NULL, ",");     // return "IP"
+    char *val = strtok(NULL, ",");      // returns ? or value
 
-    tok = strtok(gpntlBuff, ","); // returns $GPNTL
-
-    tok = strtok(NULL, ",");
-    ntlOperation = strtol(tok, NULL, 10);
-
-    tok = strtok(NULL, ","); // module
-    ntlModule = strtol(tok, NULL, 10);
-
-    ntlValue = NULL;
-    ntlValue = strtok(NULL, ","); // value
-
-    switch (ntlModule)
+    if (memcmp(mod, "CLK", 3) == 0)
     {
-    case Ucm_CoreConfig_TodSlaveCoreType:
-        break;
+    }
+    else if (memcmp(mod, "TOD", 3) == 0)
+    {
+    }
+    else if (memcmp(mod, "PPS", 3) == 0)
+    {
+    }
+    else if (memcmp(mod, "PTP", 3) == 0)
+    {
+    }
+    else if (memcmp(mod, "NTP", 3) == 0)
+    {
 
-    case Ucm_CoreConfig_PtpOrdinaryClockCoreType:
-        break;
-
-    case Ucm_CoreConfig_PpsSlaveCoreType:
-        break;
-
-    case Ucm_CoreConfig_NtpServerCoreType:
-
-        ntp_server_read_values(&ntlts);
-
-        break;
-
-    case Ucm_CoreConfig_ConfSlaveCoreType: // remove?
-        break;
-
-    case Ucm_CoreConfig_ClkClockCoreType:
-        break;
-
-    case 0:
-
-        /* int err = ntlConnect();
-        if (err != 0)
-        {
-            snprintf(ntlRsp, 31, "$GPNTL,ERR,CONNECTION FAILED\r\n");
-            UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
-        }
-        err = getCores();
-        if (err != 0)
-        {
-            snprintf(ntlRsp, 30, "$GPNTL,ERR,GET_CORES FAILED\r\n");
-            UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
-        }
-
-        snprintf(ntlRsp, 15, "$GPNTL,CC,GC\r\n");
-        UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
-        break;
-        */
+        ntp_handler(temp_rsp, rsp_size, prop, val);
     }
 }
+
+void ntp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
+{
+    int write = 0;
+    int err = 0;
+    if (val != NULL)
+    {
+        val[strcspn(val, "\r\n")] = 0; // remove \r\n
+        write = 1;
+    }
+
+    if (memcmp(prop, "IP", 2) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ntpServer.ipAddr, val, sizeof(ntlts.ntpServer.ipAddr));
+        }
+
+        // return ram value
+        memcpy(temp_rsp, ntlts.ntpServer.ipAddr, rsp_size);
+    }
+
+    if (memcmp(prop, "MAC", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ntpServer.MacAddr, val, sizeof(ntlts.ntpServer.MacAddr));
+        }
+
+        // return ram value
+        memcpy(temp_rsp, ntlts.ntpServer.MacAddr, rsp_size);
+    }
+
+    if (write)
+    {
+        err = ntp_server_write_values(&ntlts, 0);
+        if (err != 0){
+        	snprintf(temp_rsp, rsp_size, "NTP_WRITE_ERR: %d", err);
+        }
+        write = 0;
+    }
+}
+
+/* int err = ntlConnect();
+if (err != 0)
+{
+    snprintf(ntlRsp, 31, "$GPNTL,ERR,CONNECTION FAILED\r\n");
+    UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
+}
+err = getCores();
+if (err != 0)
+{
+    snprintf(ntlRsp, 30, "$GPNTL,ERR,GET_CORES FAILED\r\n");
+    UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
+}
+
+snprintf(ntlRsp, 15, "$GPNTL,CC,GC\r\n");
+UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
+break;
+*/
+
 #endif
 
 uint8_t read_reg(const uint32_t addr, uint32_t *data)

@@ -605,6 +605,8 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 
     // uint8_t temp_string[STRING_SIZE] = {0};
 
+    char temp_string[64] = {0};
+
     temp_addr = ntlts->ntpRegs.StartAddr;
 
     // mac
@@ -614,21 +616,24 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     }
     // int j = 0;
     uint64_t temp_mac = 0;
-    for (int i = 0, j = 0; i < strlen(ntlts->ntpServer.MacAddr) + 1; i++)
+
+    memcpy(temp_string, ntlts->ntpServer.MacAddr, sizeof(temp_string));
+
+    for (int i = 0, j = 0; i < strlen(temp_string) + 1; i++)
     {
-        if (ntlts->ntpServer.MacAddr[i] != ':')
+        if (temp_string[i] != ':')
         {
-            ntlts->ntpServer.MacAddr[j] = ntlts->ntpServer.MacAddr[i];
+        	temp_string[j] = temp_string[i];
             j++;
         }
 
-        if (ntlts->ntpServer.MacAddr[i] == '\0')
+        if (temp_string[i] == '\0')
         {
             break;
         }
     }
 
-    temp_mac = strtoull(ntlts->ntpServer.MacAddr, NULL, 16);
+    temp_mac = strtoull(temp_string, NULL, 16);
 
     temp_data = 0x00000000;
     temp_data |= (temp_mac >> 16) & 0x000000FF;
@@ -724,6 +729,26 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         // ui->NtpServerVlanValue->setText("NA");
     }
 
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
+    {
+
+        switch (temp_data & 0x00000003)
+        {
+        case 0x00000001:
+            snprintf(ntlts->ntpServer.ipMode, sizeof(ntlts->ntpServer.ipMode), "IPv4");
+
+            break;
+        case 0x00000002:
+            snprintf(ntlts->ntpServer.ipMode, sizeof(ntlts->ntpServer.ipMode), "IPv6");
+
+            break;
+        default:
+            snprintf(ntlts->ntpServer.ipMode, sizeof(ntlts->ntpServer.ipMode), "NA");
+
+            break;
+        }
+    }
+
     temp_data = 0x00000000;
     // temp_string = ui->NtpServerIpModeValue->currentText();
     if (strncmp(ntlts->ntpServer.ipMode, "IPv4", strlen("IPv4")) == 0)
@@ -772,6 +797,23 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     }
     if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigModeReg, &temp_data))
     {
+
+        switch (temp_data & 0x00000003)
+        {
+        case 0x00000001:
+            snprintf(ntlts->ntpServer.ipMode, sizeof(ntlts->ntpServer.ipMode), "IPv4");
+
+            break;
+        case 0x00000002:
+            snprintf(ntlts->ntpServer.ipMode, sizeof(ntlts->ntpServer.ipMode), "IPv6");
+
+            break;
+        default:
+            snprintf(ntlts->ntpServer.ipMode, sizeof(ntlts->ntpServer.ipMode), "NA");
+
+            break;
+        }
+
         temp_data = 0x00000001; // write
                                 // ntlts->ntpRegs.ConfigControlReg = temp_data;
         if (0 == write_reg(temp_addr + Ucm_NtpServer_ConfigControlReg, &temp_data))
@@ -871,10 +913,14 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 
         int32_t temp_ip[4] = {0};
 
+        char temp_string[64] = {0};
+
+        memcpy(temp_string, ntlts->ntpServer.ipAddr, sizeof(temp_string));
+
         char *token;
         for (int i = 0; i < 4; i++)
         {
-            token = (i == 0) ? strtok(ntlts->ntpServer.ipAddr, ".") : strtok(NULL, ".");
+            token = (i == 0) ? strtok(temp_string, ".") : strtok(NULL, ".");
             if (token == NULL)
                 break;
             temp_ip[i] = strtol(token, NULL, 10);
@@ -918,13 +964,17 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 
         long temp_ip6[16] = {0};
 
+        char temp_string[64] = {0};
+
+        memcpy(temp_string, ntlts->ntpServer.ipAddr, sizeof(temp_string));
+
         char *token;
         char *err;
         char byte[3];
         for (int i = 0; i < 32; i += 2)
         {
 
-            token = (i == 0) ? strtok(ntlts->ntpServer.ipAddr, ":") : strtok(NULL, ":");
+            token = (i == 0) ? strtok(temp_string, ":") : strtok(NULL, ":");
             if (token == NULL)
                 break;
 

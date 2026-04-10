@@ -16,6 +16,7 @@
  *      Author: JacobOwens
  */
 
+#ifdef USE_SOCKET
 NTL_TS_T ntlts;
 
 int main(int argc, char *argv[])
@@ -424,3 +425,4 @@ int main(int argc, char *argv[])
     */
     close(socket_fd);
 }
+#endif
