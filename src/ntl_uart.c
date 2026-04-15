@@ -100,22 +100,27 @@ void fpga_write_all(uint8_t fromRegisters)
 void NTL_COM_HANDLER(char *temp_rsp, uint32_t rsp_size)
 {
 
-    gpntlBuff[sizeof(gpntlBuff) - 1] = '\0';
+    int n = strlen(gpntlBuff) < sizeof(gpntlBuff) - 1 ? strlen(gpntlBuff) : sizeof(gpntlBuff) - 1;
+    gpntlBuff[n] = '\0';
     char *mod = strtok(gpntlBuff, ","); // return "NTP"
     char *prop = strtok(NULL, ",");     // return "IP"
     char *val = strtok(NULL, ",");      // returns ? or value
 
     if (memcmp(mod, "CLK", 3) == 0)
     {
+        clk_handler(temp_rsp, rsp_size, prop, val);
     }
     else if (memcmp(mod, "TOD", 3) == 0)
     {
+        tod_handler(temp_rsp, rsp_size, prop, val);
     }
     else if (memcmp(mod, "PPS", 3) == 0)
     {
+        pps_handler(temp_rsp, rsp_size, prop, val);
     }
     else if (memcmp(mod, "PTP", 3) == 0)
     {
+        ptp_handler(temp_rsp, rsp_size, prop, val);
     }
     else if (memcmp(mod, "NTP", 3) == 0)
     {
@@ -124,65 +129,10 @@ void NTL_COM_HANDLER(char *temp_rsp, uint32_t rsp_size)
     }
 }
 
-void ntp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
-{
-    int write = 0;
-    int err = 0;
-    if (val != NULL)
-    {
-        val[strcspn(val, "\r\n")] = 0; // remove \r\n
-        write = 1;
-    }
 
-    if (memcmp(prop, "IP", 2) == 0)
-    {
-        if (write)
-        {
-            memcpy(ntlts.ntpServer.ipAddr, val, sizeof(ntlts.ntpServer.ipAddr));
-        }
 
-        // return ram value
-        memcpy(temp_rsp, ntlts.ntpServer.ipAddr, rsp_size);
-    }
 
-    if (memcmp(prop, "MAC", 3) == 0)
-    {
-        if (write)
-        {
-            memcpy(ntlts.ntpServer.MacAddr, val, sizeof(ntlts.ntpServer.MacAddr));
-        }
 
-        // return ram value
-        memcpy(temp_rsp, ntlts.ntpServer.MacAddr, rsp_size);
-    }
-
-    if (write)
-    {
-        err = ntp_server_write_values(&ntlts, 0);
-        if (err != 0){
-        	snprintf(temp_rsp, rsp_size, "NTP_WRITE_ERR: %d", err);
-        }
-        write = 0;
-    }
-}
-
-/* int err = ntlConnect();
-if (err != 0)
-{
-    snprintf(ntlRsp, 31, "$GPNTL,ERR,CONNECTION FAILED\r\n");
-    UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
-}
-err = getCores();
-if (err != 0)
-{
-    snprintf(ntlRsp, 30, "$GPNTL,ERR,GET_CORES FAILED\r\n");
-    UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
-}
-
-snprintf(ntlRsp, 15, "$GPNTL,CC,GC\r\n");
-UART_Send(STDIO_UART, ntlRsp, strlen(ntlRsp));
-break;
-*/
 
 #endif
 

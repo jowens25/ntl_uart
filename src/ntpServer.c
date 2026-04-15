@@ -1196,3 +1196,211 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     }
     return 0;
 }
+
+
+
+void ntp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
+{
+
+    int write = 0;
+    int err = 0;
+
+    err = ntp_server_read_values(&ntlts);
+
+    if (err != 0)
+    {
+        snprintf(temp_rsp, rsp_size, "NTP_READ_ERR: %d", err);
+    }
+
+    if (val != NULL)
+    {
+        val[strcspn(val, "\r\n")] = 0; // remove \r\n
+        write = 1;
+    }
+
+    // GET / SET ENABLE
+    if (strncmp(prop, "ENB", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ntpServer.Enable = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "NTP,ENB,%d", ntlts.ntpServer.Enable);
+    }
+
+    // IP ADDRESS
+    if (strncmp(prop, "IP", 2) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ntpServer.ipAddr, val, sizeof(ntlts.ntpServer.ipAddr));
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,IP,%s", ntlts.ntpServer.ipAddr);
+    }
+
+    // MAC ADDRESS
+    else if (memcmp(prop, "MAC", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ntpServer.MacAddr, val, sizeof(ntlts.ntpServer.MacAddr));
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,MAC,%s", ntlts.ntpServer.MacAddr);
+    }
+
+    // UTC OFFSET EN
+    else if (memcmp(prop, "UOE", 3) == 0)
+    {
+        if (write)
+        {
+
+            ntlts.ntpServer.utcOffsetEnable = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,UOE,%d", ntlts.ntpServer.utcOffsetEnable);
+    }
+    // UTC_OFFSET
+    else if (memcmp(prop, "UOF", 3) == 0)
+    {
+        if (write)
+        {
+
+            ntlts.ntpServer.utcOffset = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,UOF,%d", ntlts.ntpServer.utcOffset);
+    }
+
+    // GET REQUESTS
+    else if (memcmp(prop, "REQ", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,REQ,%d", ntlts.ntpServer.requests);
+    }
+
+    // GET RESPONSES
+    else if (memcmp(prop, "RSP", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,RSP,%d", ntlts.ntpServer.responses);
+    }
+
+    // GET BROADCASTS
+    else if (memcmp(prop, "BCS", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,BCS,%d", ntlts.ntpServer.broadcasts);
+    }
+
+    // GET / SET UNICAST MODE
+    else if (memcmp(prop, "UNI", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ntpServer.unicastEnable = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,UNI,%d", ntlts.ntpServer.unicastEnable);
+    }
+
+    // GET / SET MULTICAST MODE
+    else if (memcmp(prop, "MTI", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ntpServer.multicastEnable = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,MTI,%d", ntlts.ntpServer.multicastEnable);
+    }
+
+    // GET / SET BROADCAST MODE
+    else if (memcmp(prop, "BRC", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ntpServer.broadcastEnable = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,BRC,%d", ntlts.ntpServer.broadcastEnable);
+    }
+
+    // GET / SET STRATUM
+    else if (memcmp(prop, "STR", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ntpServer.Stratum = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,STR,%d", ntlts.ntpServer.Stratum);
+    }
+
+    // GET / SET PRECISION
+    else if (memcmp(prop, "PRE", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ntpServer.Precision = strtol(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,PRE,%d", ntlts.ntpServer.Precision);
+    }
+
+    // GET / SET REF ID
+    else if (memcmp(prop, "REF", 3) == 0)
+    {
+        if (write)
+        {
+            // ntlts.ntpServer.referenceId = strtol(val, NULL, 10);
+            memcpy(ntlts.ntpServer.referenceId, val, sizeof(ntlts.ntpServer.referenceId));
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,REF,%s", ntlts.ntpServer.referenceId);
+    }
+
+    // SET (clear) COUNTERS
+    else if (memcmp(prop, "CNT", 3) == 0)
+    {
+        if (write)
+        {
+
+            ntlts.ntpServer.clearCounters = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,CNT,CLEARED");
+    }
+
+    // WRITE FPGA REGS WITH UPDATED RAM
+    if (write)
+    {
+        err = ntp_server_write_values(&ntlts, 0);
+        if (err != 0)
+        {
+            snprintf(temp_rsp, rsp_size, "NTP_WRITE_ERR: %d", err);
+        }
+        write = 0;
+
+        err = ntp_server_read_values(&ntlts);
+
+        if (err != 0)
+        {
+            snprintf(temp_rsp, rsp_size, "NTP_READ_ERR: %d", err);
+        }
+    }
+}

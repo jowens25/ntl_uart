@@ -193,3 +193,87 @@ int8_t pps_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 
     return 0;
 }
+
+
+
+void pps_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
+{
+
+    int write = 0;
+    int err = 0;
+
+    err = pps_slave_read_values(&ntlts);
+
+    if (err != 0)
+    {
+        snprintf(temp_rsp, rsp_size, "PPS_READ_ERR: %d", err);
+    }
+
+    if (val != NULL)
+    {
+        val[strcspn(val, "\r\n")] = 0; // remove \r\n
+        write = 1;
+    }
+
+    // GET / SET ENABLE
+    if (strncmp(prop, "ENB", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ppsSlave.Enable = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$PPS,ENB,%d", ntlts.ppsSlave.Enable);
+    }
+
+    // GET / SET PULSE WIDTH
+    else if (strncmp(prop, "PWD", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ppsSlave.PulseWidth = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$PPS,PWD,%d", ntlts.ppsSlave.PulseWidth);
+    }
+
+    // GET / SET CABLE DELAY
+    else if (strncmp(prop, "CDY", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ppsSlave.CableDelay = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$PPS,CDY,%d", ntlts.ppsSlave.CableDelay);
+    }
+
+    // GET INPUT OK
+    else if (strncmp(prop, "IOK", 3) == 0)
+    {
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$PPS,IOK,%d", ntlts.ppsSlave.InputOk);
+    }
+
+    // WRITE FPGA REGS WITH UPDATED RAM
+    if (write)
+    {
+        err = pps_slave_write_values(&ntlts, 0);
+        if (err != 0)
+        {
+            snprintf(temp_rsp, rsp_size, "PPS_WRITE_ERR: %d", err);
+        }
+        write = 0;
+
+        err = pps_slave_read_values(&ntlts);
+
+        if (err != 0)
+        {
+            snprintf(temp_rsp, rsp_size, "PPS_READ_ERR: %d", err);
+        }
+    }
+}

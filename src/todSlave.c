@@ -14,6 +14,8 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
 
     if (0 == read_reg(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
     {
+
+    	ntlts->todRegs.ControlReg = temp_data;
         // enabled
         if ((temp_data & 0x00000001) == 0)
         {
@@ -100,6 +102,7 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
     if (0 == read_reg(temp_addr + Ucm_TodSlave_CorrectionReg, &temp_data))
     {
         // ntlts->TodSlaveCorrectionValue->setText(QString("0x%1").arg(temp_data, 8, 16, QLatin1Char('0')));
+    	ntlts->todRegs.CorrectionReg = temp_data;
         ntlts->todSlave.Correction = temp_data;
     }
     else
@@ -110,6 +113,8 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
     // baud rate
     if (0 == read_reg(temp_addr + Ucm_TodSlave_UartBaudRateReg, &temp_data))
     {
+
+    	ntlts->todRegs.UartBaudRateReg = temp_data;
         switch (temp_data)
         {
         case 0:
@@ -180,6 +185,7 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
     // polarity
     if (0 == read_reg(temp_addr + Ucm_TodSlave_PolarityReg, &temp_data))
     {
+    	ntlts->todRegs.PolarityReg = temp_data;
         if ((temp_data & 0x00000001) == 0)
         {
             // ntlts->TodSlaveInverted = 1;;
@@ -200,10 +206,11 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
     // input ok
     if (0 == read_reg(temp_addr + Ucm_TodSlave_StatusReg, &temp_data))
     {
+    	ntlts->todRegs.StatusReg = temp_data;
         if (temp_data == 0)
         {
             ntlts->todSlave.InputOk = 1;
-            ;
+
         }
         else
         {
@@ -787,6 +794,12 @@ int8_t tod_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     {
         temp_data |= 0x00000001; // enable
     }
+
+    if (fromRegisters)
+    {
+        temp_data = ntlts->todRegs.ControlReg;
+    }
+
     if (0 == write_reg(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
     {
         // nothing
@@ -801,4 +814,98 @@ int8_t tod_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     }
 
     return 0;
+}
+
+
+
+void tod_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
+{
+    int write = 0;
+    int err = 0;
+
+    err = tod_slave_read_values(&ntlts);
+
+    if (err != 0)
+    {
+        snprintf(temp_rsp, rsp_size, "TOD_READ_ERR: %d", err);
+    }
+
+    if (val != NULL)
+    {
+        val[strcspn(val, "\r\n")] = 0; // remove \r\n
+        write = 1;
+    }
+
+    // GET / SET ENABLE
+    if (strncmp(prop, "ENB", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.todSlave.Enable = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$TOD,ENB,%d", ntlts.todSlave.Enable);
+    }
+
+    // GET / SET PROTOCOL
+    else if (strncmp(prop, "PRO", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.todSlave.Protocol, val, sizeof(ntlts.todSlave.Protocol));
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$TOD,PRO,%s", ntlts.todSlave.Protocol);
+    }
+
+    // GET / SET GNSS
+    else if (strncmp(prop, "GNS", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.todSlave.Gnss, val, sizeof(ntlts.todSlave.Gnss));
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$TOD,GNS,%s", ntlts.todSlave.Gnss);
+    }
+
+    // GET INPUT OK
+
+    else if (strncmp(prop, "IOK", 3) == 0)
+    {
+        snprintf(temp_rsp, rsp_size, "$TOD,IOK,%d", ntlts.todSlave.InputOk);
+    }
+
+    // GET / SET BAUDRATE
+    else if (strncmp(prop, "BAU", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.todSlave.BaudRate = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$TOD,BAU,%d", ntlts.todSlave.BaudRate);
+    }
+
+    // WRITE FPGA REGS WITH UPDATED RAM
+    if (write)
+    {
+        err = tod_slave_write_values(&ntlts, 0);
+        if (err != 0)
+        {
+            snprintf(temp_rsp, rsp_size, "TOD_WRITE_ERR: %d", err);
+        }
+        write = 0;
+
+        err = tod_slave_read_values(&ntlts);
+
+        if (err != 0)
+        {
+            snprintf(temp_rsp, rsp_size, "TOD_READ_ERR: %d", err);
+        }
+    }
 }

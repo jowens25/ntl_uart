@@ -292,7 +292,7 @@ typedef struct PtpOc
 	int64_t PortDsPeerDelay;
 	char PortDsState[16];
 	uint8_t PortDsAsymmetry;
-	uint8_t PortDsMaxPeerDelay;
+	uint32_t PortDsMaxPeerDelay;
 	uint8_t PortDsPDelayReqLogMsgInterval;
 	uint8_t PortDsDelayReceiptTimeout;
 	uint8_t PortDsDelayReqLogMsgInterval;
@@ -434,6 +434,11 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 void fpga_read_all(void);
 
 void fpga_write_all(uint8_t fromRegisters);
+
+void clk_handler(char *temp_rsp, int rsp_size, const char *prop, char *val);
+void tod_handler(char *temp_rsp, int rsp_size, const char *prop, char *val);
+void pps_handler(char *temp_rsp, int rsp_size, const char *prop, char *val);
+void ptp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val);
 void ntp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val);
 
 #include "clkClock.h"

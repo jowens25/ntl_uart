@@ -1087,3 +1087,116 @@ int8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 
     return 0;
 }
+
+void clk_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
+
+{
+
+    int write = 0;
+    int err = 0;
+
+    err = clk_clock_read_values(&ntlts);
+
+    if (err != 0)
+    {
+        snprintf(temp_rsp, rsp_size, "CLK_READ_ERR: %d", err);
+    }
+
+    if (val != NULL)
+    {
+        val[strcspn(val, "\r\n")] = 0; // remove \r\n
+        write = 1;
+    }
+
+    // GET ENB
+    if (strncmp(prop, "ENB", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.clkClock.Enable = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$CLK,ENB,%d", ntlts.clkClock.Enable);
+    }
+
+    // GET SECONDS
+    else if (strncmp(prop, "SEC", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.clkClock.Seconds = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$CLK,SEC,%d", ntlts.clkClock.Seconds);
+    }
+
+    // GET IN SYNC
+    else if (strncmp(prop, "ISY", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$CLK,ISY,%d", ntlts.clkClock.InSync);
+    }
+
+    // GET / SET IN SYNC TH
+    else if (strncmp(prop, "IST", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.clkClock.InSyncThreshold = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$CLK,IST,%d", ntlts.clkClock.InSyncThreshold);
+    }
+
+    // GET IN HOLDOVER
+    else if (strncmp(prop, "IHO", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$CLK,IHO,%d", ntlts.clkClock.InHoldover);
+    }
+
+    // GET CLK SOURCE
+    else if (strncmp(prop, "SRC", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.clkClock.Source, val, sizeof(ntlts.clkClock.Source));
+        }
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$CLK,SRC,%s", ntlts.clkClock.Source);
+    }
+
+    // GET CORRECTED DRIFT
+    else if (strncmp(prop, "CDT", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$CLK,CDT,%.4f", ntlts.clkClock.CorrectedDrift);
+    }
+    // GET CORRECTED OFFSET
+    else if (strncmp(prop, "COT", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$CLK,COT,%.4f", ntlts.clkClock.CorrectedOffset);
+    }
+
+    // WRITE FPGA REGS WITH UPDATED RAM
+    if (write)
+    {
+        err = clk_clock_write_values(&ntlts, 0);
+        if (err != 0)
+        {
+            snprintf(temp_rsp, rsp_size, "CLK_WRITE_ERR: %d", err);
+        }
+        write = 0;
+
+        err = clk_clock_read_values(&ntlts);
+
+        if (err != 0)
+        {
+            snprintf(temp_rsp, rsp_size, "CLK_READ_ERR: %d", err);
+        }
+    }
+}

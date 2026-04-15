@@ -2895,3 +2895,455 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     */
     return 0;
 }
+
+
+
+void ptp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
+{
+
+    int write = 0;
+    int err = 0;
+    if (val != NULL)
+    {
+        val[strcspn(val, "\r\n")] = 0; // remove \r\n
+        write = 1;
+    }
+
+    // GET / SET ENABLE
+    if (strncmp(prop, "ENB", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.Enable = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "PTP,ENB,%d", ntlts.ptpOc.Enable);
+    }
+
+    // GET / SET PROFILE
+    else if (memcmp(prop, "PRO", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ptpOc.Profile, val, sizeof(ntlts.ptpOc.Profile));
+        }
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "PTP,PRO,%s", ntlts.ptpOc.Profile);
+    }
+
+    // GET / SET Delay MECH
+    else if (memcmp(prop, "DME", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ptpOc.DelayMechanism, val, sizeof(ntlts.ptpOc.DelayMechanism));
+        }
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "PTP,DME,%s", ntlts.ptpOc.DelayMechanism);
+    }
+
+    // GET / SET IP ADDR
+    else if (memcmp(prop, "IP", 2) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ptpOc.ipAddr, val, sizeof(ntlts.ptpOc.ipAddr));
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,IP,%s", ntlts.ptpOc.ipAddr);
+    }
+
+    // GET / SET DEFAULT DS CLOCK ID
+    else if (memcmp(prop, "DCI", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ptpOc.DefaultDsClockId, val, sizeof(ntlts.ptpOc.DefaultDsClockId));
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DCI,%s", ntlts.ptpOc.DefaultDsClockId);
+    }
+
+    // GET / SET DEFAULT DS DOMAIN
+    else if (memcmp(prop, "DDO", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsDomain = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DDO,%d", ntlts.ptpOc.DefaultDsDomain);
+    }
+
+    // GET / SET DEFAULT DS PRI 1
+    else if (memcmp(prop, "DP1", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsPriority1 = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DP1,%d", ntlts.ptpOc.DefaultDsPriority1);
+    }
+
+    // GET / SET DEFAULT DS PRI 2
+    else if (memcmp(prop, "DP2", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsPriority2 = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DP2,%d", ntlts.ptpOc.DefaultDsPriority2);
+    }
+
+    // GET / SET DEFAULT DS ACCURACY
+    else if (memcmp(prop, "DAC", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsAccuracy = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DAC,%d", ntlts.ptpOc.DefaultDsAccuracy);
+    }
+
+    // GET / SET DEFAULT DS CLASS
+    else if (memcmp(prop, "DCS", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsClass = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DCS,%d", ntlts.ptpOc.DefaultDsClass);
+    }
+
+    // GET / SET DEFAULT DS VaRIANCE
+    else if (memcmp(prop, "DVA", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsVariance = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DVA,%d", ntlts.ptpOc.DefaultDsVariance);
+    }
+
+    // GET / SET DEFAULT DS Short ID
+    else if (memcmp(prop, "DSI", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsShortId = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DSI,%d", ntlts.ptpOc.DefaultDsShortId);
+    }
+
+    // GET / SET DEFAULT DS INACCURACY
+    else if (memcmp(prop, "DIA", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsInaccuracy = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DIA,%d", ntlts.ptpOc.DefaultDsInaccuracy);
+    }
+
+    // GET / SET DEFAULT DS TWO STEP
+    else if (memcmp(prop, "DTS", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsTwoStep = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DTS,%d", ntlts.ptpOc.DefaultDsTwoStep);
+    }
+
+    // GET / SET DEFAULT DS SIGNALING
+    else if (memcmp(prop, "DSG", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsSignaling = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DSG,%d", ntlts.ptpOc.DefaultDsSignaling);
+    }
+
+    // GET / SET DEFAULT DS MASTER ONLY!
+    else if (memcmp(prop, "DMO", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsMasterOnly = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DMO,%d", ntlts.ptpOc.DefaultDsMasterOnly);
+    }
+
+    // GET / SET DEFAULT DS SLAVE ONLY!
+    else if (memcmp(prop, "DSO", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.DefaultDsSlaveOnly = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,DSO,%d", ntlts.ptpOc.DefaultDsSlaveOnly);
+    }
+
+    // GET / SET PORT DS PEER DELAY - PPD
+    else if (memcmp(prop, "PPD", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.PortDsPeerDelay = strtoll(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,PPD,%d", ntlts.ptpOc.PortDsPeerDelay);
+    }
+
+    // GET / SET PORT DS STATE - PST
+    else if (memcmp(prop, "PST", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ptpOc.PortDsState, val, sizeof(ntlts.ptpOc.PortDsState));
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,PST,%s", ntlts.ptpOc.PortDsState);
+    }
+
+    // GET / SET PORT DS Asymmetry - PAS
+    else if (memcmp(prop, "PAS", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.PortDsAsymmetry = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,PAS,%d", ntlts.ptpOc.PortDsAsymmetry);
+    }
+
+    // GET / SET PORT DS Max Delay - PMD
+    else if (memcmp(prop, "PAS", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.PortDsMaxPeerDelay = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,PAS,%d", ntlts.ptpOc.PortDsMaxPeerDelay);
+    }
+
+    // GET CURRENT DS STEPS REMOVED - CSR
+    else if (memcmp(prop, "CSR", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.CurrentDsStepsRemoved = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,CSR,%d", ntlts.ptpOc.CurrentDsStepsRemoved);
+    }
+    // GET CURRENT DS OFFSET - COF
+    else if (memcmp(prop, "COF", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.CurrentDsOffset = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,COF,%d", ntlts.ptpOc.CurrentDsOffset);
+    }
+    // GET CURRENT DS DELAY - CDY
+    else if (memcmp(prop, "CDY", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.CurrentDsDelay = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,CDY,%d", ntlts.ptpOc.CurrentDsDelay);
+    }
+
+    // GET PARENT DS Parent clock ID - PCI
+    else if (memcmp(prop, "PCI", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ptpOc.ParentDsParentClockId, val, sizeof(ntlts.ptpOc.ParentDsParentClockId));
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,PCI,%s", ntlts.ptpOc.ParentDsParentClockId);
+    }
+    // GET PARENT DS GM clock id - GCI
+    else if (memcmp(prop, "GCI", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ptpOc.ParentDsGmClockId, val, sizeof(ntlts.ptpOc.ParentDsGmClockId));
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,GCI,%s", ntlts.ptpOc.ParentDsGmClockId);
+    }
+    // GET PARENT DS GM Prioity 1 - GP1
+    else if (memcmp(prop, "GP1", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.ParentDsGmPriority1 = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,GP1,%d", ntlts.ptpOc.ParentDsGmPriority1);
+    }
+    // GET PARENT DS GM Priotity 2 - GP2
+    else if (memcmp(prop, "GP2", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.ParentDsGmPriority2 = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,GP2,%d", ntlts.ptpOc.ParentDsGmPriority2);
+    }
+    // GET PARENT DS GM ACC - GAC
+    else if (memcmp(prop, "GAC", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.ParentDsGmAccuracy = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,GAC,%d", ntlts.ptpOc.ParentDsGmAccuracy);
+    }
+    // GET PARENT DS GM Class - GCS
+    else if (memcmp(prop, "GCS", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.ParentDsGmClass = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,GCS,%d", ntlts.ptpOc.ParentDsGmClass);
+    }
+    // GET PARENT DS GM Variance - GVA
+    else if (memcmp(prop, "GVA", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.ParentDsGmVariance = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,GVA,%d", ntlts.ptpOc.ParentDsGmVariance);
+    }
+    // GET PARENT DS GM Shortid - GSI
+    else if (memcmp(prop, "GSI", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.ParentDsGmShortId = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,GSI,%d", ntlts.ptpOc.ParentDsGmShortId);
+    }
+    // GET PARENT DS GM Inaccuaracy - GIA
+    else if (memcmp(prop, "GIA", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.ParentDsGmInaccuracy = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,GIA,%d", ntlts.ptpOc.ParentDsGmInaccuracy);
+    }
+
+    // GET / SET Time props DS Time Source - TTS
+    else if (memcmp(prop, "TTS", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.TimePropertiesDsTimeSource = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,TTS,%d", ntlts.ptpOc.TimePropertiesDsTimeSource);
+    }
+    // GET / SET Time props DS Time PTP timescale - TPT
+    else if (memcmp(prop, "TPT", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.TimePropertiesDsPtpTimescale = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,TPT,%d", ntlts.ptpOc.TimePropertiesDsPtpTimescale);
+    }
+    // GET / SET Time props DS Time Freq Trace - TFT
+    else if (memcmp(prop, "TFT", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.TimePropertiesDsFreqTraceable = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,TFT,%d", ntlts.ptpOc.TimePropertiesDsFreqTraceable);
+    }
+    // GET / SET Time props DS Time time trace - TTT
+    else if (memcmp(prop, "TTT", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.TimePropertiesDsTimeTraceable = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,TTT,%d", ntlts.ptpOc.TimePropertiesDsTimeTraceable);
+    }
+    // GET / SET LEAP 59 -- skipped
+    // GET / SET LEAP 61 -- skipped
+    // GET / SET Time props DS Time UTC OFFSET ENB - TUE
+    else if (memcmp(prop, "TUE", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.TimePropertiesDsUtcOffset = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,TUE,%d", ntlts.ptpOc.TimePropertiesDsUtcOffset);
+    }
+    // GET / SET Time props DS Time UTC OFFSET - TUO
+    else if (memcmp(prop, "TUO", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.TimePropertiesDsUtcOffsetVal = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,TUO,%d", ntlts.ptpOc.TimePropertiesDsUtcOffsetVal);
+    }
+    // GET / SET Time props DS Time Current offset - TCO
+    else if (memcmp(prop, "TCO", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.TimePropertiesDsCurrentOffset = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,TCO,%d", ntlts.ptpOc.TimePropertiesDsCurrentOffset);
+    }
+    // GET / SET Time props DS Time Jump seconds - TJS
+    else if (memcmp(prop, "TJS", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.TimePropertiesDsJumpSeconds = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,TJS,%d", ntlts.ptpOc.TimePropertiesDsJumpSeconds);
+    }
+    // GET / SET Time props DS Time NExt jump - TNJ
+    else if (memcmp(prop, "TNJ", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.TimePropertiesDsNextJump = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,TNJ,%d", ntlts.ptpOc.TimePropertiesDsNextJump);
+    }
+    // GET / SET Time props DS Time Deplay Name - TDN
+    else if (memcmp(prop, "TDN", 3) == 0)
+    {
+        if (write)
+        {
+            memcpy(ntlts.ptpOc.TimePropertiesDsDisplayName, val, sizeof(ntlts.ptpOc.TimePropertiesDsDisplayName));
+        }
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$PTP,TDN,%s", ntlts.ptpOc.TimePropertiesDsDisplayName);
+    }
+
+    // GET / SET Time props DS TIME Set Local Props EN - TSL
+    else if (memcmp(prop, "TSL", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ptpOc.TimePropertiesDsSetLocalProperties = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "PTP,TSL,%d", ntlts.ptpOc.TimePropertiesDsSetLocalProperties);
+    }
+
+    if (write)
+    {
+        err = ntp_server_write_values(&ntlts, 0);
+        if (err != 0)
+        {
+            snprintf(temp_rsp, rsp_size, "NTP_WRITE_ERR: %d", err);
+        }
+        write = 0;
+    }
+}
