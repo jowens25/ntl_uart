@@ -4,6 +4,138 @@
 #include "string.h"
 #include "stdbool.h"
 
+int8_t ptp_oc_read_subset(NTL_TS_T *ntlts)
+{
+
+    uint64_t temp_next_jump;
+    uint64_t temp_delay;
+    int64_t temp_signed_delay;
+    uint64_t temp_offset;
+    int64_t temp_signed_offset;
+    uint8_t temp_length;
+    // uint32_t temp_ip;
+    uint8_t temp_min = 0;
+    uint8_t temp_max = 0;
+
+    uint32_t temp_data = 0;
+    uint32_t temp_addr = 0;
+    uint32_t temp_ip;
+    uint8_t temp_string[STRING_SIZE] = {0};
+    uint8_t temp_ip6[16];
+
+    temp_addr = ntlts->ptpRegs.StartAddr;
+
+
+    if (temp_addr == 0){
+    	return 1;
+    }
+
+    // enabled
+    if (0 == read_reg(temp_addr + Ucm_PtpOc_ControlReg, &temp_data))
+    {
+        if ((temp_data & 0x00000001) == 0)
+        {
+            ntlts->ptpOc.Enable = 0;
+        }
+        else
+        {
+            ntlts->ptpOc.Enable = 1;
+        }
+    }
+    else
+    {
+        ntlts->ptpOc.Enable = 0;
+    }
+
+    //********************************
+    // port dataset
+    //********************************
+
+    temp_data = 0x40000000;
+    if (0 == write_reg(temp_addr + Ucm_PtpOc_PortDsControlReg, &temp_data))
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            if (0 == read_reg(temp_addr + Ucm_PtpOc_PortDsControlReg, &temp_data))
+            {
+                if ((temp_data & 0x80000000) != 0)
+                {
+                    // temp_string = ntlts->ptpOc.DelayMechanismValue->currentText();
+                    // if ((temp_string == "E2E") or(temp_string == "E2E Unicast"))
+
+                    // state
+                    if (0 == read_reg(temp_addr + Ucm_PtpOc_PortDs3Reg, &temp_data))
+                    {
+                        switch (temp_data)
+                        {
+                        case 0x0000001:
+                            // ntlts->ptpOc.PortDsStateValue->setText("INITIALIZING");
+                            snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "INITIALIZING");
+                            // snprintf(ntlts->ptpOc.Layer, sizeof(ntlts->ptpOc.Layer), "NA");
+
+                            break;
+                        case 0x00000002:
+                            // ntlts->ptpOc.PortDsStateValue->setText("FAULTY");
+                            snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "FAULTY");
+                            break;
+                        case 0x00000003:
+                            // ntlts->ptpOc.PortDsStateValue->setText("DISABLED");
+                            snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "DISABLED");
+                            break;
+                        case 0x00000004:
+                            // ntlts->ptpOc.PortDsStateValue->setText("LISTENING");
+                            snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "LISTENING");
+                            break;
+                        case 0x00000005:
+                            // ntlts->ptpOc.PortDsStateValue->setText("PREMASTER");
+                            snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "PREMASTER");
+                            break;
+                        case 0x00000006:
+                            // ntlts->ptpOc.PortDsStateValue->setText("MASTER");
+                            snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "MASTER");
+                            break;
+                        case 0x00000007:
+                            // ntlts->ptpOc.PortDsStateValue->setText("PASSIVE");
+                            snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "PASSIVE");
+                            break;
+                        case 0x00000008:
+                            // ntlts->ptpOc.PortDsStateValue->setText("UNCALIBRATED");
+                            snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "UNCALIBRATED");
+                            break;
+                        case 0x00000009:
+                            // ntlts->ptpOc.PortDsStateValue->setText("SLAVE");
+                            snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "SLAVE");
+                            break;
+                        default:
+                            // ntlts->ptpOc.PortDsStateValue->setText("NA");
+                            snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "NA");
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        // ntlts->ptpOc.PortDsStateValue->setText("NA");
+                        snprintf(ntlts->ptpOc.PortDsState, sizeof(ntlts->ptpOc.PortDsState), "NA");
+                    }
+
+                    break;
+                }
+                else if (i == 9)
+                {
+                }
+            }
+            else
+            {
+            }
+        }
+    }
+    else
+    {
+    }
+
+    return 0;
+}
+
 int8_t ptp_oc_read_values(NTL_TS_T *ntlts)
 {
 
@@ -24,6 +156,11 @@ int8_t ptp_oc_read_values(NTL_TS_T *ntlts)
     uint8_t temp_ip6[16];
 
     temp_addr = ntlts->ptpRegs.StartAddr;
+
+
+    if (temp_addr == 0){
+    	return 1;
+    }
 
     // enabled
     if (0 == read_reg(temp_addr + Ucm_PtpOc_ControlReg, &temp_data))
@@ -1441,6 +1578,11 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     // uint8_t temp_string[STRING_SIZE] = {0};
 
     temp_addr = ntlts->ptpRegs.StartAddr;
+
+
+    if (temp_addr == 0){
+    	return 1;
+    }
 
     // profile and layer
     // temp_string = ui->PtpOcProfileValue->currentText();
@@ -2878,25 +3020,32 @@ int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
                 }
             }
         }
-
+*/
         temp_data = 0x00000000; // nothing
         if (ntlts->ptpOc.Enable)
         {
             temp_data |= 0x00000001; // enable
         }
+
+        if (fromRegisters)
+        {
+            temp_data = ntlts->ptpRegs.ControlReg;
+        }
+
         if (0 == write_reg(temp_addr + Ucm_PtpOc_ControlReg, &temp_data))
         {
             // nothing
+            //ntlts->ptpOc.Enable = 1;
+
         }
         else
         {
-            ui->PtpOcEnableCheckBox->setChecked(false);
+            //ui->PtpOcEnableCheckBox->setChecked(false);
+            //ntlts->ptpOc.Enable = 0;
         }
-    */
+
     return 0;
 }
-
-
 
 void ptp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
 {
@@ -2907,6 +3056,13 @@ void ptp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
     {
         val[strcspn(val, "\r\n")] = 0; // remove \r\n
         write = 1;
+    }
+
+    // GET START ADDR
+    if (strncmp(prop, "ADR", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$PTP,ADR,%#08X", ntlts.ptpRegs.StartAddr);
     }
 
     // GET / SET ENABLE
@@ -3339,10 +3495,10 @@ void ptp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
 
     if (write)
     {
-        err = ntp_server_write_values(&ntlts, 0);
+        err = ptp_oc_write_values(&ntlts, 0);
         if (err != 0)
         {
-            snprintf(temp_rsp, rsp_size, "NTP_WRITE_ERR: %d", err);
+            snprintf(temp_rsp, rsp_size, "PTP_WRITE_ERR: %d", err);
         }
         write = 0;
     }

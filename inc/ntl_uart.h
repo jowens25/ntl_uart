@@ -26,40 +26,53 @@ void readSocket(int socket_fd, char *msg);
 
 #endif
 
-#define Ucm_CoreConfig_ConfSlaveCoreType 1
-#define Ucm_CoreConfig_ClkClockCoreType 2
-#define Ucm_CoreConfig_ClkSignalGeneratorCoreType 3
-#define Ucm_CoreConfig_ClkSignalTimestamperCoreType 4
-#define Ucm_CoreConfig_IrigSlaveCoreType 5
-#define Ucm_CoreConfig_IrigMasterCoreType 6
-#define Ucm_CoreConfig_PpsSlaveCoreType 7
-#define Ucm_CoreConfig_PpsMasterCoreType 8
-#define Ucm_CoreConfig_PtpOrdinaryClockCoreType 9
-#define Ucm_CoreConfig_PtpTransparentClockCoreType 10
-#define Ucm_CoreConfig_PtpHybridClockCoreType 11
-#define Ucm_CoreConfig_RedHsrPrpCoreType 12
-#define Ucm_CoreConfig_RtcSlaveCoreType 13
-#define Ucm_CoreConfig_RtcMasterCoreType 14
-#define Ucm_CoreConfig_TodSlaveCoreType 15
-#define Ucm_CoreConfig_TodMasterCoreType 16
-#define Ucm_CoreConfig_TapSlaveCoreType 17
-#define Ucm_CoreConfig_DcfSlaveCoreType 18
-#define Ucm_CoreConfig_DcfMasterCoreType 19
-#define Ucm_CoreConfig_RedTsnCoreType 20
-#define Ucm_CoreConfig_TsnIicCoreType 21
-#define Ucm_CoreConfig_NtpServerCoreType 22
-#define Ucm_CoreConfig_NtpClientCoreType 23
-#define Ucm_CoreConfig_ClkFrequencyGeneratorCoreType 25
-#define Ucm_CoreConfig_SynceNodeCoreType 26
-#define Ucm_CoreConfig_PpsClkToPpsCoreType 27
-#define Ucm_CoreConfig_PtpServerCoreType 28
-#define Ucm_CoreConfig_PtpClientCoreType 29
-#define Ucm_CoreConfig_PhyConfigurationCoreType 10000
-#define Ucm_CoreConfig_I2cConfigurationCoreType 10001
-#define Ucm_CoreConfig_IoConfigurationCoreType 10002
-#define Ucm_CoreConfig_EthernetTestplatformType 10003
-#define Ucm_CoreConfig_MinSwitchCoreType 10004
-#define Ucm_CoreConfig_ConfExtCoreType 20000
+#define Ucm_Config_BlockSize 16
+#define Ucm_Config_TypeInstanceReg 0x00000000
+#define Ucm_Config_BaseAddrLReg                         0x00000004
+
+#define Ucm_CoreConfig_ConfSlaveCoreType                1
+#define Ucm_CoreConfig_ClkClockCoreType                 2
+#define Ucm_CoreConfig_ClkSignalGeneratorCoreType       3
+#define Ucm_CoreConfig_ClkSignalTimestamperCoreType     4
+#define Ucm_CoreConfig_IrigSlaveCoreType                5
+#define Ucm_CoreConfig_IrigMasterCoreType               6
+#define Ucm_CoreConfig_PpsSlaveCoreType                 7
+#define Ucm_CoreConfig_PpsMasterCoreType                8
+#define Ucm_CoreConfig_PtpOrdinaryClockCoreType         9
+#define Ucm_CoreConfig_PtpTransparentClockCoreType      10
+#define Ucm_CoreConfig_PtpHybridClockCoreType           11
+#define Ucm_CoreConfig_RedHsrPrpCoreType                12
+#define Ucm_CoreConfig_RtcSlaveCoreType                 13
+#define Ucm_CoreConfig_RtcMasterCoreType                14
+#define Ucm_CoreConfig_TodSlaveCoreType                 15
+#define Ucm_CoreConfig_TodMasterCoreType                16
+#define Ucm_CoreConfig_TapSlaveCoreType                 17
+#define Ucm_CoreConfig_DcfSlaveCoreType                 18
+#define Ucm_CoreConfig_DcfMasterCoreType                19
+#define Ucm_CoreConfig_RedTsnCoreType                   20
+#define Ucm_CoreConfig_TsnIicCoreType                   21
+#define Ucm_CoreConfig_NtpServerCoreType                22
+#define Ucm_CoreConfig_NtpClientCoreType                23
+#define Ucm_CoreConfig_ClkFrequencyGeneratorCoreType    25
+#define Ucm_CoreConfig_SynceNodeCoreType                26
+#define Ucm_CoreConfig_PpsClkToPpsCoreType              27
+#define Ucm_CoreConfig_PtpServerCoreType                28
+#define Ucm_CoreConfig_PtpClientCoreType                29
+#define Ucm_CoreConfig_ClkDynamicControlCoreType        30
+#define Ucm_CoreConfig_ClkDynamicSourceCoreType         31
+#define Ucm_CoreConfig_ClkCrossTimestamperCoreType      32
+#define Ucm_CoreConfig_PhyConfigurationCoreType         10000
+#define Ucm_CoreConfig_I2cConfigurationCoreType         10001
+#define Ucm_CoreConfig_IoConfigurationCoreType          10002
+#define Ucm_CoreConfig_EthernetTestplatformType         10003
+#define Ucm_CoreConfig_MinSwitchCoreType                10004
+#define Ucm_CoreConfig_EepromCoreType                   10005
+#define Ucm_CoreConfig_MuxCoreType                      10006
+#define Ucm_CoreConfig_PmPowerCoreType                  10009
+#define Ucm_CoreConfig_AxiFaultRecorderType             10010
+#define Ucm_CoreConfig_AdjustmentMonitorType            10011
+#define Ucm_CoreConfig_DesignInfoType                   10012
+#define Ucm_CoreConfig_ConfExtCoreType                  20000
 
 typedef struct ClkRegisters
 {
@@ -396,6 +409,17 @@ typedef struct NtpServer
 
 } NtpServer;
 
+
+typedef struct PhyConfRegisters
+{
+	uint32_t StartAddr;
+}PhyConfRegisters;
+
+typedef struct SynceRegisters
+{
+	uint32_t StartAddr;
+}SynceRegisters;
+
 typedef struct NTL_TS_T
 {
 
@@ -410,36 +434,52 @@ typedef struct NTL_TS_T
 	NtpRegisters ntpRegs;
 	NtpServer ntpServer;
 
+	SynceRegisters synceRegs;
+	PhyConfRegisters phyConfRegs;
+
 } NTL_TS_T;
+
+
+
 
 extern struct NTL_TS_T ntlts;
 
 int get_length_by_char(char *myString, char *myChar);
+void RegisterHandler(char *cmd);
 
 int8_t clk_clock_read_values(NTL_TS_T *ntlts);
+int8_t clk_clock_read_subset(NTL_TS_T *ntlts);
+
 int8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 
 int8_t tod_slave_read_values(NTL_TS_T *ntlts);
+int8_t tod_slave_read_subset(NTL_TS_T *ntlts);
 int8_t tod_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 
 int8_t pps_slave_read_values(NTL_TS_T *ntlts);
+int8_t pps_slave_read_subset(NTL_TS_T *ntlts);
 int8_t pps_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 
 int8_t ptp_oc_read_values(NTL_TS_T *ntlts);
+int8_t ptp_oc_read_subset(NTL_TS_T *ntlts);
 int8_t ptp_oc_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 
 int8_t ntp_server_read_values(NTL_TS_T *ntlts);
+int8_t ntp_server_read_subset(NTL_TS_T *ntlts);
 int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters);
 
 void fpga_read_all(void);
-
+void fpga_read_subset_1hz(void);
 void fpga_write_all(uint8_t fromRegisters);
+int fpga_read_core_addresses(NTL_TS_T *ntlts);
 
 void clk_handler(char *temp_rsp, int rsp_size, const char *prop, char *val);
 void tod_handler(char *temp_rsp, int rsp_size, const char *prop, char *val);
 void pps_handler(char *temp_rsp, int rsp_size, const char *prop, char *val);
 void ptp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val);
 void ntp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val);
+
+#include "headers.h"
 
 #include "clkClock.h"
 #include "ntl_uart.h"
@@ -461,6 +501,7 @@ extern char gpntlBuff[64];
 extern char *ntl;
 
 void NTL_COM_HANDLER(char *temp_rsp, uint32_t temp_rsp_size);
+int wakeup_fpga(void);
 
 extern int ntlWriteSuccess;
 

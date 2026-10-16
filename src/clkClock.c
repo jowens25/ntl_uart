@@ -4,6 +4,225 @@
 #include "string.h"
 #include "stdbool.h"
 
+#ifdef NTL_TIME_SERVER
+
+int8_t clk_clock_read_subset(NTL_TS_T *ntlts)
+{
+    uint32_t temp_data = 0;
+    uint32_t temp_addr = 0;
+
+    double temp_drift = 0;
+    double temp_offset = 0;
+
+    temp_addr = ntlts->clkRegs.StartAddr;
+
+
+    if (temp_addr == 0){
+    	return 1;
+    }
+
+    // enabled
+    if (0 == read_reg(temp_addr + Ucm_ClkClock_ControlReg, &temp_data))
+    {
+        ntlts->clkRegs.ControlReg = temp_data;
+        if ((temp_data & 0x00000001) == 0)
+        {
+            ntlts->clkClock.Enable = 0;
+        }
+        else
+        {
+            ntlts->clkClock.Enable = 1;
+        }
+    }
+    else
+    {
+        ntlts->clkClock.Enable = 0;
+    }
+
+    temp_data = 0x40000000;
+    if (ntlts->clkClock.Enable)
+    {
+        temp_data |= 0x00000001;
+    }
+    if (0 == write_reg(temp_addr + Ucm_ClkClock_ControlReg, &temp_data))
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            if (0 == read_reg(temp_addr + Ucm_ClkClock_ControlReg, &temp_data))
+            {
+                if ((temp_data & 0x80000000) != 0)
+                {
+                    // seconds
+                    if (0 == read_reg(temp_addr + Ucm_ClkClock_TimeValueHReg, &temp_data))
+                    {
+                        ntlts->clkClock.Seconds = temp_data;
+                    }
+                    else
+                    {
+                        // ntlts->clkClock.Seconds = -1;
+                    }
+
+                    // date
+                    // QDateTime temp_date;
+                    // temp_date.setSecsSinceEpoch(temp_data);
+                    // ntlts->clkClock.Date->setText(temp_date.toUTC().toString("dd.MM.yyyy hh:mm:ss"));
+
+                    // nanoseconds
+                    if (0 == read_reg(temp_addr + Ucm_ClkClock_TimeValueLReg, &temp_data))
+                    {
+                        ntlts->clkClock.Nanoseconds = temp_data;
+                    }
+                    else
+                    {
+                        // ntlts->clkClock.Nanoseconds = -1;
+                    }
+
+                    break;
+                }
+                else if (i == 9)
+                {
+                    // cout << "ERROR: " << "read did not complete" << endl;
+                    // ntlts->clkClock.Seconds->setText("NA");
+                    // ntlts->clkClock.Nanoseconds->setText("NA");
+                }
+            }
+            else
+            {
+                // ntlts->clkClock.Seconds->setText("NA");
+                // ntlts->clkClock.Nanoseconds->setText("NA");
+            }
+        }
+    }
+    else
+    {
+        // ntlts->clkClock.Seconds->setText("NA");
+        // ntlts->clkClock.Nanoseconds->setText("NA");
+    }
+
+    // in sync
+    if (0 == read_reg(temp_addr + Ucm_ClkClock_StatusReg, &temp_data))
+    {
+        ntlts->clkRegs.StatusReg = temp_data;
+
+        if ((temp_data & 0x00000001) == 0)
+        {
+            ntlts->clkClock.InSync = 0;
+        }
+        else
+        {
+            ntlts->clkClock.InSync = 1;
+        }
+
+        if ((temp_data & 0x00000002) == 0)
+        {
+            ntlts->clkClock.InHoldover = 0;
+        }
+        else
+        {
+            ntlts->clkClock.InHoldover = 1;
+        }
+    }
+    else
+    {
+        // ntlts->clkClock.InSync->setText("NA");
+        // ntlts->clkClock.InHoldover->setText("NA");
+    }
+
+    // source
+    if (0 == read_reg(temp_addr + Ucm_ClkClock_SelectReg, &temp_data))
+    {
+        ntlts->clkRegs.SelectReg = temp_data;
+        switch ((temp_data >> 16) & 0x0000FFFF)
+        {
+        case 0x00000000:
+            // ntlts->clkClock.Source->setCurrentText("NONE");
+            snprintf(ntlts->clkClock.Source, sizeof("NONE"), "NONE");
+            break;
+        case 0x0000001:
+            // ntlts->clkClock.Source->setCurrentText("TOD");
+            snprintf(ntlts->clkClock.Source, sizeof("TOD"), "TOD");
+            break;
+        case 0x00000002:
+            // ntlts->clkClock.Source->setCurrentText("IRIG");
+            snprintf(ntlts->clkClock.Source, sizeof("IRIG"), "IRIG");
+            break;
+        case 0x00000003:
+            // ntlts->clkClock.Source->setCurrentText("PPS");
+            snprintf(ntlts->clkClock.Source, sizeof("PPS"), "PPS");
+            break;
+        case 0x00000004:
+            // ntlts->clkClock.Source->setCurrentText("PTP");
+            snprintf(ntlts->clkClock.Source, sizeof("PTP"), "PTP");
+            break;
+        case 0x00000005:
+            // ntlts->clkClock.Source->setCurrentText("RTC");
+            snprintf(ntlts->clkClock.Source, sizeof("RTC"), "RTC");
+            break;
+        case 0x00000006:
+            // ntlts->clkClock.Source->setCurrentText("DCF");
+            snprintf(ntlts->clkClock.Source, sizeof("DCF"), "DCF");
+            break;
+        case 0x00000007:
+            // ntlts->clkClock.Source->setCurrentText("NTP");
+            snprintf(ntlts->clkClock.Source, sizeof("NTP"), "NTP");
+            break;
+        case 0x000000FE:
+            // ntlts->clkClock.Source->setCurrentText("REG");
+            snprintf(ntlts->clkClock.Source, sizeof("REG"), "REG");
+            break;
+        case 0x000000FF:
+            // ntlts->clkClock.Source->setCurrentText("EXT");
+            snprintf(ntlts->clkClock.Source, sizeof("EXT"), "EXT");
+            break;
+        default:
+            // ntlts->clkClock.Source->setCurrentText("NA");
+            snprintf(ntlts->clkClock.Source, sizeof("NA"), "NA");
+            break;
+        }
+    }
+    else
+    {
+        // ntlts->clkClock.Source->setCurrentText("NA");
+        snprintf(ntlts->clkClock.Source, sizeof("NA"), "NA");
+    }
+
+
+    // offset
+       if (0 == read_reg(temp_addr + Ucm_ClkClock_OffsetAdjValueReg, &temp_data))
+       {
+           ntlts->clkRegs.OffsetAdjValueReg = temp_data;
+
+           int32_t temp_offset = temp_data & 0x7FFFFFFF;
+           if ((temp_data & 0x80000000) != 0)
+           {
+               temp_offset = -1 * temp_offset;
+           }
+           // ui->ClkClockOffsetValue->setText(QString::number(temp_offset));
+           ntlts->clkClock.Offset = temp_offset;
+
+           if (0 == read_reg(temp_addr + Ucm_ClkClock_OffsetAdjIntervalReg, &temp_data))
+           {
+               // ui->ClkClockOffsetIntervalValue->setText(QString::number(temp_data));
+               ntlts->clkClock.OffsetInterval = temp_data;
+           }
+           else
+           {
+               // ui->ClkClockOffsetValue->setText("NA");
+               // ui->ClkClockOffsetIntervalValue->setText("NA");
+               // ui->ClkClockOffsetAdjCheckBox->setChecked(false);
+           }
+       }
+       else
+       {
+           // ui->ClkClockOffsetValue->setText("NA");
+           // ui->ClkClockOffsetIntervalValue->setText("NA");
+           // ui->ClkClockOffsetAdjCheckBox->setChecked(false);
+       }
+
+
+    return 0;
+}
+
 int8_t clk_clock_read_values(NTL_TS_T *ntlts)
 {
     uint32_t temp_data = 0;
@@ -13,6 +232,11 @@ int8_t clk_clock_read_values(NTL_TS_T *ntlts)
     double temp_offset = 0;
 
     temp_addr = ntlts->clkRegs.StartAddr;
+
+
+    if (temp_addr == 0){
+    	return 1;
+    }
 
     // enabled
     if (0 == read_reg(temp_addr + Ucm_ClkClock_ControlReg, &temp_data))
@@ -381,6 +605,10 @@ int8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 
     temp_addr = ntlts->clkRegs.StartAddr;
 
+    if (temp_addr == 0){
+    	return 1;
+    }
+
     // source
     // temp_string = ui->ClkClockSourceValue->currentText();
     // if (temp_string == "NONE")
@@ -429,15 +657,17 @@ int8_t clk_clock_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
         temp_data = 0x00000000;
     }
 
+    if (fromRegisters)
+    {
+        temp_data = ntlts->clkRegs.SelectReg;
+    }
+
     if (strncmp(ntlts->clkClock.Source, "NA", strlen("NA")) == 0)
     // if (temp_string == "NA")
     {
         // nothing
     }
-    if (fromRegisters)
-    {
-        temp_data = ntlts->clkRegs.SelectReg;
-    }
+
     else if (0 == write_reg(temp_addr + Ucm_ClkClock_SelectReg, &temp_data))
     {
         // switch (temp_data & 0x0000FFFF)
@@ -1108,6 +1338,12 @@ void clk_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
         write = 1;
     }
 
+    if (strncmp(prop, "ADR", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$CLK,ADR,%#08X", ntlts.clkRegs.StartAddr);
+    }
+
     // GET ENB
     if (strncmp(prop, "ENB", 3) == 0)
     {
@@ -1200,3 +1436,5 @@ void clk_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
         }
     }
 }
+
+#endif

@@ -5,6 +5,107 @@
 #include "string.h"
 #include "stdbool.h"
 
+#ifdef NTL_TIME_SERVER
+
+int8_t ntp_server_read_subset(NTL_TS_T *ntlts)
+{
+
+    uint32_t temp_data = 0;
+    uint32_t temp_addr = 0;
+    uint64_t temp_ip;
+    uint8_t temp_string[STRING_SIZE] = {0};
+    uint8_t temp_ip6[16];
+    // char *temp_string;
+
+    // temp_addr = ntlts->ntpServer.address_start;
+    temp_addr = ntlts->ntpRegs.StartAddr;
+
+
+    if (temp_addr == 0){
+    	return 1;
+    }
+
+    // enabled
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_ControlReg, &temp_data))
+    {
+        ntlts->ntpRegs.ControlReg = temp_data;
+
+        if ((temp_data & 0x00000001) == 0)
+        {
+            ntlts->ntpServer.Enable = 0;
+            // rintf("ntp enable: 0\n");
+        }
+        else
+        {
+            ntlts->ntpServer.Enable = 1;
+            // printf("ntp enable: 1\n");
+        }
+    }
+    else
+    {
+        ntlts->ntpServer.Enable = 0;
+        // printf("ntp enable: 0\n");
+    }
+
+    // status
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_CountReqReg, &temp_data))
+    {
+        ntlts->ntpRegs.CountReqReg = temp_data;
+        // ui->NtpServerRequestsValue->setText(QString::number(temp_data));
+        // snprintf(ntlts->ntpServer.requests, sizeof(ntlts->ntpServer.requests), "%d", temp_data);
+        ntlts->ntpServer.requests = temp_data;
+    }
+
+    else
+    {
+        // ui->NtpServerRequestsValue->setText("NA");
+        // snprintf(ntlts->ntpServer.requests, sizeof(ntlts->ntpServer.requests), "%s", "NA");
+        ntlts->ntpServer.requests = -1;
+    }
+
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_CountRespReg, &temp_data))
+    {
+        ntlts->ntpRegs.CountRespReg = temp_data;
+        // ui->NtpServerResponsesValue->setText(QString::number(temp_data));
+        // snprintf(ntlts->ntpServer.responses, sizeof(ntlts->ntpServer.responses), "%d", temp_data);
+        ntlts->ntpServer.responses = temp_data;
+    }
+
+    else
+    {
+        // snprintf(ntlts->ntpServer.responses, sizeof(ntlts->ntpServer.responses), "%s", "NA");
+        ntlts->ntpServer.responses = -1;
+    }
+
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_CountReqDroppedReg, &temp_data))
+    {
+        ntlts->ntpRegs.CountReqDroppedReg = temp_data;
+        // snprintf(ntlts->ntpServer.requestsDropped, sizeof(ntlts->ntpServer.requestsDropped), "%d", temp_data);
+        ntlts->ntpServer.requestsDropped = temp_data;
+    }
+
+    else
+    {
+        // snprintf(ntlts->ntpServer.requestsDropped, sizeof(ntlts->ntpServer.requestsDropped), "%s", "NA");
+        ntlts->ntpServer.requestsDropped = -1;
+    }
+
+    if (0 == read_reg(temp_addr + Ucm_NtpServer_CountBroadcastReg, &temp_data))
+    {
+        ntlts->ntpRegs.CountBroadcastReg = temp_data;
+        // snprintf(ntlts->ntpServer.broadcasts, sizeof(ntlts->ntpServer.broadcasts), "%d", temp_data);
+        ntlts->ntpServer.broadcasts = temp_data;
+    }
+
+    else
+    {
+        // snprintf(ntlts->ntpServer.broadcasts, sizeof(ntlts->ntpServer.broadcasts), "%s", "NA");
+        ntlts->ntpServer.broadcasts = -1;
+    }
+
+    return 0;
+}
+
 int8_t ntp_server_read_values(NTL_TS_T *ntlts)
 {
 
@@ -17,7 +118,11 @@ int8_t ntp_server_read_values(NTL_TS_T *ntlts)
 
     // temp_addr = ntlts->ntpServer.address_start;
     temp_addr = ntlts->ntpRegs.StartAddr;
-    // temp_addr = 0xB0020000;
+
+
+    if (temp_addr == 0){
+    	return 1;
+    }
 
     // enabled
     if (0 == read_reg(temp_addr + Ucm_NtpServer_ControlReg, &temp_data))
@@ -609,6 +714,10 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 
     temp_addr = ntlts->ntpRegs.StartAddr;
 
+    if (temp_addr == 0){
+    	return 1;
+    }
+
     // mac
     if (strlen(ntlts->ntpServer.MacAddr) > 17)
     {
@@ -623,7 +732,7 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     {
         if (temp_string[i] != ':')
         {
-        	temp_string[j] = temp_string[i];
+            temp_string[j] = temp_string[i];
             j++;
         }
 
@@ -1197,8 +1306,6 @@ int8_t ntp_server_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     return 0;
 }
 
-
-
 void ntp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
 {
 
@@ -1218,6 +1325,13 @@ void ntp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
         write = 1;
     }
 
+    // GET START ADDR
+    if (strncmp(prop, "ADR", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$NTP,ADR,%#08X", ntlts.ntpRegs.StartAddr);
+    }
+
     // GET / SET ENABLE
     if (strncmp(prop, "ENB", 3) == 0)
     {
@@ -1227,7 +1341,7 @@ void ntp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
         }
 
         // return ram value
-        snprintf(temp_rsp, rsp_size, "NTP,ENB,%d", ntlts.ntpServer.Enable);
+        snprintf(temp_rsp, rsp_size, "$NTP,ENB,%d", ntlts.ntpServer.Enable);
     }
 
     // IP ADDRESS
@@ -1378,12 +1492,9 @@ void ntp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
     {
         if (write)
         {
-
             ntlts.ntpServer.clearCounters = strtoul(val, NULL, 10);
+            snprintf(temp_rsp, rsp_size, "$NTP,CNT,CLEARED");
         }
-
-        // return ram value
-        snprintf(temp_rsp, rsp_size, "$NTP,CNT,CLEARED");
     }
 
     // WRITE FPGA REGS WITH UPDATED RAM
@@ -1404,3 +1515,5 @@ void ntp_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
         }
     }
 }
+
+#endif

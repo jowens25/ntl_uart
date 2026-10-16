@@ -4,6 +4,65 @@
 #include "string.h"
 #include "stdbool.h"
 
+int8_t pps_slave_read_subset(NTL_TS_T *ntlts)
+{
+
+    int32_t temp_delay = 0;
+    uint32_t temp_data = 0;
+    uint32_t temp_addr = 0;
+
+    temp_addr = ntlts->ppsRegs.StartAddr;
+
+
+    if (temp_addr == 0){
+    	return 1;
+    }
+
+    // enabled
+    if (0 == read_reg(temp_addr + Ucm_PpsSlave_ControlReg, &temp_data))
+    {
+
+        ntlts->ppsRegs.ControlReg = temp_data;
+
+        if ((temp_data & 0x00000001) == 0)
+        {
+            ntlts->ppsSlave.Enable = 0;
+        }
+        else
+        {
+            ntlts->ppsSlave.Enable = 1;
+        }
+    }
+    else
+    {
+        ntlts->ppsSlave.Enable = 0;
+    }
+
+    // input ok
+    if (0 == read_reg(temp_addr + Ucm_PpsSlave_StatusReg, &temp_data))
+    {
+        ntlts->ppsRegs.StatusReg = temp_data;
+
+        if (temp_data == 0)
+        {
+            ntlts->ppsSlave.InputOk = 1;
+        }
+        else
+        {
+            ntlts->ppsSlave.InputOk = 0;
+        }
+
+        // clear after read
+        write_reg(temp_addr + Ucm_PpsSlave_StatusReg, &temp_data);
+    }
+    else
+    {
+        ntlts->ppsSlave.InputOk = 0;
+    }
+
+    return 0;
+}
+
 int8_t pps_slave_read_values(NTL_TS_T *ntlts)
 {
 
@@ -13,9 +72,17 @@ int8_t pps_slave_read_values(NTL_TS_T *ntlts)
 
     temp_addr = ntlts->ppsRegs.StartAddr;
 
+
+    if (temp_addr == 0){
+    	return 1;
+    }
+
     // enabled
     if (0 == read_reg(temp_addr + Ucm_PpsSlave_ControlReg, &temp_data))
     {
+
+        ntlts->ppsRegs.ControlReg = temp_data;
+
         if ((temp_data & 0x00000001) == 0)
         {
             ntlts->ppsSlave.Enable = 0;
@@ -33,6 +100,8 @@ int8_t pps_slave_read_values(NTL_TS_T *ntlts)
     // polarity
     if (0 == read_reg(temp_addr + Ucm_PpsSlave_PolarityReg, &temp_data))
     {
+        ntlts->ppsRegs.PolarityReg = temp_data;
+
         if ((temp_data & 0x00000001) == 0)
         {
             ntlts->ppsSlave.Inverted = 1;
@@ -50,6 +119,8 @@ int8_t pps_slave_read_values(NTL_TS_T *ntlts)
     // input ok
     if (0 == read_reg(temp_addr + Ucm_PpsSlave_StatusReg, &temp_data))
     {
+        ntlts->ppsRegs.StatusReg = temp_data;
+
         if (temp_data == 0)
         {
             ntlts->ppsSlave.InputOk = 1;
@@ -70,6 +141,8 @@ int8_t pps_slave_read_values(NTL_TS_T *ntlts)
     // pulse width
     if (0 == read_reg(temp_addr + Ucm_PpsSlave_PulseWidthReg, &temp_data))
     {
+        ntlts->ppsRegs.PulseWidthReg = temp_data;
+
         ntlts->ppsSlave.PulseWidth = temp_data;
     }
     else
@@ -80,6 +153,8 @@ int8_t pps_slave_read_values(NTL_TS_T *ntlts)
     // cable delay
     if (0 == read_reg(temp_addr + Ucm_PpsSlave_CableDelayReg, &temp_data))
     {
+        ntlts->ppsRegs.CableDelayReg = temp_data;
+
         temp_delay = (int)(temp_data & 0x3FFFFFFF);
         if ((temp_data & 0x80000000) != 0)
         {
@@ -104,6 +179,7 @@ int8_t pps_slave_read_values(NTL_TS_T *ntlts)
 
     return 0;
 }
+
 int8_t pps_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
 
 {
@@ -111,6 +187,10 @@ int8_t pps_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     uint32_t temp_addr = 0;
     temp_addr = ntlts->ppsRegs.StartAddr;
 
+
+    if (temp_addr == 0){
+    	return 1;
+    }
     // cable delay
     // temp_string = ui->PpsSlaveCableDelayValue->text();
     // temp_delay = temp_string.toInt(nullptr, 10);
@@ -194,8 +274,6 @@ int8_t pps_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     return 0;
 }
 
-
-
 void pps_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
 {
 
@@ -203,7 +281,6 @@ void pps_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
     int err = 0;
 
     err = pps_slave_read_values(&ntlts);
-
     if (err != 0)
     {
         snprintf(temp_rsp, rsp_size, "PPS_READ_ERR: %d", err);
@@ -215,6 +292,12 @@ void pps_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
         write = 1;
     }
 
+    if (strncmp(prop, "ADR", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$PPS,ADR,%#08X", ntlts.ppsRegs.StartAddr);
+    }
+
     // GET / SET ENABLE
     if (strncmp(prop, "ENB", 3) == 0)
     {
@@ -222,8 +305,6 @@ void pps_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
         {
             ntlts.ppsSlave.Enable = strtoul(val, NULL, 10);
         }
-
-        // return ram value
         snprintf(temp_rsp, rsp_size, "$PPS,ENB,%d", ntlts.ppsSlave.Enable);
     }
 
@@ -234,9 +315,17 @@ void pps_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
         {
             ntlts.ppsSlave.PulseWidth = strtoul(val, NULL, 10);
         }
-
-        // return ram value
         snprintf(temp_rsp, rsp_size, "$PPS,PWD,%d", ntlts.ppsSlave.PulseWidth);
+    }
+
+    // GET / SET INVERT
+    else if (strncmp(prop, "INV", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.ppsSlave.Inverted = strtoul(val, NULL, 10);
+        }
+        snprintf(temp_rsp, rsp_size, "$PPS,INV,%d", ntlts.ppsSlave.Inverted);
     }
 
     // GET / SET CABLE DELAY
@@ -246,16 +335,12 @@ void pps_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
         {
             ntlts.ppsSlave.CableDelay = strtoul(val, NULL, 10);
         }
-
-        // return ram value
         snprintf(temp_rsp, rsp_size, "$PPS,CDY,%d", ntlts.ppsSlave.CableDelay);
     }
 
     // GET INPUT OK
     else if (strncmp(prop, "IOK", 3) == 0)
     {
-
-        // return ram value
         snprintf(temp_rsp, rsp_size, "$PPS,IOK,%d", ntlts.ppsSlave.InputOk);
     }
 

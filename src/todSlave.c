@@ -4,6 +4,57 @@
 #include "string.h"
 #include "stdbool.h"
 
+int8_t tod_slave_read_subset(NTL_TS_T *ntlts)
+
+{
+    uint32_t temp_data = 0;
+    uint32_t temp_addr = 0;
+
+    temp_addr = ntlts->todRegs.StartAddr;
+
+    if (temp_addr == 0){
+    	return 1;
+    }
+
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
+    {
+
+        ntlts->todRegs.ControlReg = temp_data;
+        // enabled
+        if ((temp_data & 0x00000001) == 0)
+        {
+            ntlts->todSlave.Enable = 0;
+        }
+        else
+        {
+            // ntlts->TodSlaveEnable = 1;;
+            ntlts->todSlave.Enable = 1;
+        }
+    }
+    // input ok
+    if (0 == read_reg(temp_addr + Ucm_TodSlave_StatusReg, &temp_data))
+    {
+        ntlts->todRegs.StatusReg = temp_data;
+        if (temp_data == 0)
+        {
+            ntlts->todSlave.InputOk = 1;
+        }
+        else
+        {
+            ntlts->todSlave.InputOk = 0;
+        }
+
+        // clear after read
+        write_reg(temp_addr + Ucm_TodSlave_StatusReg, &temp_data);
+    }
+    else
+    {
+        ntlts->todSlave.InputOk = 0;
+    }
+
+    return 0;
+}
+
 int8_t tod_slave_read_values(NTL_TS_T *ntlts)
 
 {
@@ -12,10 +63,14 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
 
     temp_addr = ntlts->todRegs.StartAddr;
 
+    if (temp_addr == 0){
+    	return 1;
+    }
+
     if (0 == read_reg(temp_addr + Ucm_TodSlave_ControlReg, &temp_data))
     {
 
-    	ntlts->todRegs.ControlReg = temp_data;
+        ntlts->todRegs.ControlReg = temp_data;
         // enabled
         if ((temp_data & 0x00000001) == 0)
         {
@@ -102,7 +157,7 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
     if (0 == read_reg(temp_addr + Ucm_TodSlave_CorrectionReg, &temp_data))
     {
         // ntlts->TodSlaveCorrectionValue->setText(QString("0x%1").arg(temp_data, 8, 16, QLatin1Char('0')));
-    	ntlts->todRegs.CorrectionReg = temp_data;
+        ntlts->todRegs.CorrectionReg = temp_data;
         ntlts->todSlave.Correction = temp_data;
     }
     else
@@ -114,7 +169,7 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
     if (0 == read_reg(temp_addr + Ucm_TodSlave_UartBaudRateReg, &temp_data))
     {
 
-    	ntlts->todRegs.UartBaudRateReg = temp_data;
+        ntlts->todRegs.UartBaudRateReg = temp_data;
         switch (temp_data)
         {
         case 0:
@@ -185,7 +240,7 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
     // polarity
     if (0 == read_reg(temp_addr + Ucm_TodSlave_PolarityReg, &temp_data))
     {
-    	ntlts->todRegs.PolarityReg = temp_data;
+        ntlts->todRegs.PolarityReg = temp_data;
         if ((temp_data & 0x00000001) == 0)
         {
             // ntlts->TodSlaveInverted = 1;;
@@ -206,11 +261,10 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
     // input ok
     if (0 == read_reg(temp_addr + Ucm_TodSlave_StatusReg, &temp_data))
     {
-    	ntlts->todRegs.StatusReg = temp_data;
+        ntlts->todRegs.StatusReg = temp_data;
         if (temp_data == 0)
         {
             ntlts->todSlave.InputOk = 1;
-
         }
         else
         {
@@ -430,7 +484,7 @@ int8_t tod_slave_read_values(NTL_TS_T *ntlts)
         // ntlts->todSlave.JammingLevelValue->setText("NA");
         // ntlts->todSlave.JammingStateValue->setCurrentText("NA");
         // ntlts->todSlave.AntennaStateValue->setCurrentText("NA");
-        // ntlts->todSlave.AntennaAndJammingInfoValid = 0;
+        // // ntlts->todSlave.AntennaAndJammingInfoValid = 0;
     }
 
     // nr of satelites
@@ -536,6 +590,10 @@ int8_t tod_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     // uint8_t temp_string[STRING_SIZE] = {0};
 
     temp_addr = ntlts->todRegs.StartAddr;
+
+    if (temp_addr == 0){
+    	return 1;
+    }
 
     // correction
     // temp_string = ui->TodSlaveCorrectionValue->text();
@@ -816,8 +874,6 @@ int8_t tod_slave_write_values(NTL_TS_T *ntlts, uint8_t fromRegisters)
     return 0;
 }
 
-
-
 void tod_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
 {
     int write = 0;
@@ -834,6 +890,12 @@ void tod_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
     {
         val[strcspn(val, "\r\n")] = 0; // remove \r\n
         write = 1;
+    }
+
+    if (strncmp(prop, "ADR", 3) == 0)
+    {
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$TOD,ADR,%#08X", ntlts.todRegs.StartAddr);
     }
 
     // GET / SET ENABLE
@@ -889,6 +951,18 @@ void tod_handler(char *temp_rsp, int rsp_size, const char *prop, char *val)
 
         // return ram value
         snprintf(temp_rsp, rsp_size, "$TOD,BAU,%d", ntlts.todSlave.BaudRate);
+    }
+
+    // GET / SET CORRECTION
+    else if (strncmp(prop, "COR", 3) == 0)
+    {
+        if (write)
+        {
+            ntlts.todSlave.Correction = strtoul(val, NULL, 10);
+        }
+
+        // return ram value
+        snprintf(temp_rsp, rsp_size, "$TOD,COR,%d", ntlts.todSlave.Correction);
     }
 
     // WRITE FPGA REGS WITH UPDATED RAM

@@ -6,6 +6,7 @@
  */
 
 #include "ntl_uart.h"
+#ifdef NTL_TIME_SERVER
 
 #ifdef USE_SOCKET
 
@@ -88,6 +89,15 @@ void fpga_read_all(void)
     ntp_server_read_values(&ntlts);
 }
 
+void fpga_read_subset_1hz(void)
+{
+    clk_clock_read_subset(&ntlts);
+    tod_slave_read_subset(&ntlts);
+    pps_slave_read_subset(&ntlts);
+    ptp_oc_read_subset(&ntlts);
+    ntp_server_read_subset(&ntlts);
+}
+
 void fpga_write_all(uint8_t fromRegisters)
 {
     clk_clock_write_values(&ntlts, fromRegisters);
@@ -95,6 +105,38 @@ void fpga_write_all(uint8_t fromRegisters)
     pps_slave_write_values(&ntlts, fromRegisters);
     ptp_oc_write_values(&ntlts, fromRegisters);
     ntp_server_write_values(&ntlts, fromRegisters);
+}
+
+
+// waits for FPGA response....
+void RegisterHandler(char *inpcmd)
+{
+
+    char *cmd = strtok(inpcmd, ","); // return "CC" or "RC" or "WC"
+    char *reg = strtok(NULL, ",");     // return "0x12344312"
+    char *data = strtok(NULL, ",");      // returns "0x12344312
+    char temprsp[32] = {0};
+    uint32_t tempdata = (uint32_t)strtoul(data, NULL,16);
+    uint32_t tempaddr = (uint32_t)strtoul(reg, NULL,16);
+
+    if (memcmp(cmd, "$RC", 3) == 0)
+    {
+    	read_reg(tempaddr, &tempdata);
+		UART0_SendBuff(ntlResponseBuff, strlen(ntlResponseBuff));
+		UART2_SendBuff(ntlResponseBuff, strlen(ntlResponseBuff));
+
+    }
+    else if (memcmp(cmd, "$WC", 3) == 0)
+    {
+    	write_reg(tempaddr, &tempdata);
+		UART0_SendBuff(ntlResponseBuff, strlen(ntlResponseBuff));
+		UART2_SendBuff(ntlResponseBuff, strlen(ntlResponseBuff));
+    } else if (memcmp(cmd, "$CC", 3) == 0)
+    {
+    	wakeup_fpga();
+		UART0_SendBuff(ntlResponseBuff, strlen(ntlResponseBuff));
+		UART2_SendBuff(ntlResponseBuff, strlen(ntlResponseBuff));
+    }
 }
 
 void NTL_COM_HANDLER(char *temp_rsp, uint32_t rsp_size)
@@ -130,6 +172,164 @@ void NTL_COM_HANDLER(char *temp_rsp, uint32_t rsp_size)
 }
 
 
+int wakeup_fpga(void) {
+
+	    char read_data[STRING_SIZE] = {0};
+	    char write_data[STRING_SIZE] = {0};
+	    uint8_t checksum;
+
+	    char hexChecksum[STRING_SIZE] = {0};
+
+	    strncat(write_data, "$CC", strlen("$CC") + 1);
+
+
+	    checksum = 0;
+	    for (uint8_t i = 1; i < strlen(write_data); i++)
+	    {
+	        checksum = checksum ^ write_data[i];
+	    }
+	    strncat(write_data, "*", strlen("*") + 1);
+
+	    sprintf(hexChecksum, "%02X", checksum); // convert to hex string
+	    strncat(write_data, hexChecksum, strlen(hexChecksum) + 1);
+
+	    strncat(write_data, "\r", 2);
+	    strncat(write_data, "\n", 2);
+
+	    uint8_t retries = 5;
+	    while(retries != 0) {
+	    	retries--;
+
+
+	#ifdef USE_SOCKET
+	    int data_length = write(socket_fd, write_data, strlen(write_data));
+
+	    if (data_length == -1)
+	    {
+	        printf("write failed\n");
+	        return -1;
+	    }
+	    else if (data_length != strlen(write_data))
+	    {
+	        printf("write incomplete\n");
+	        return -1;
+	    }
+	#else // UART
+
+	#ifdef PCB519
+	    UART3_SendBuff(write_data, strlen(write_data));
+	#else
+	    UART2_SendBuff(write_data, strlen(write_data));
+	#endif // PCB519
+
+	#endif
+
+	#ifdef USE_SOCKET
+	    readSocket(socket_fd, read_data);
+
+	#else // UART
+	    cycles = 50000;
+	    while (cycles--)
+	        ;
+
+	    if (ntlRspReceived)
+	    {
+	        ntlRspReceived = 0;
+	        memcpy(read_data, ntlResponseBuff, strlen(ntlResponseBuff));
+	        if (strncmp("$CR", read_data, strlen("$CR")) == 0)
+	       	{
+	       	    // printf("correct response received\n");
+	       	    return 0;
+	       	}
+	    }
+
+	#endif
+
+	    } // retries
+
+	    return -1;
+	}
+
+
+
+int fpga_read_core_addresses(NTL_TS_T *ntlts){
+
+	uint32_t temp_data=0;
+	uint32_t address_start=0;
+
+	int error_code = 0;
+
+	for (int i = 0; i < 256; i++)
+    {
+
+        if (0 == read_reg((0x00000000 + ((i * Ucm_Config_BlockSize) + Ucm_Config_TypeInstanceReg)), &temp_data))
+        {
+            if ((i == 0) &&
+                ((((temp_data >> 16) & 0x0000FFFF) != Ucm_CoreConfig_ConfSlaveCoreType) ||
+                 (((temp_data >> 0) & 0x0000FFFF) != 1)))
+            {
+                //cout << "ERROR: " << "not a conf block at the address expected" << endl;
+            	error_code = -1;
+                break;
+            }
+            else if (temp_data == 0)
+            {
+
+                break;
+            }
+            else
+            {
+                int core_type = ((temp_data >> 16) & 0x0000FFFF);
+                //int core_instance_nr = ((temp_data >> 0) & 0x0000FFFF);
+                if (0 == read_reg((0x00000000 + ((i * Ucm_Config_BlockSize) + Ucm_Config_BaseAddrLReg)), &temp_data))
+                {
+                    //temp_config.address_range_low = temp_data;
+                    address_start = temp_data;
+                }
+
+                switch(core_type){
+
+					case Ucm_CoreConfig_ConfSlaveCoreType:
+					break;
+					case Ucm_CoreConfig_ClkClockCoreType:
+						ntlts->clkRegs.StartAddr = address_start;
+					break;
+					case Ucm_CoreConfig_PpsSlaveCoreType:
+						ntlts->ppsRegs.StartAddr = address_start;
+					break;
+					case Ucm_CoreConfig_PpsMasterCoreType:
+					break;
+					case Ucm_CoreConfig_PtpOrdinaryClockCoreType:
+						ntlts->ptpRegs.StartAddr = address_start;
+					break;
+					case Ucm_CoreConfig_TodSlaveCoreType:
+						ntlts->todRegs.StartAddr = address_start;
+					break;
+					case Ucm_CoreConfig_NtpServerCoreType:
+						ntlts->ntpRegs.StartAddr = address_start;
+					break;
+					case Ucm_CoreConfig_NtpClientCoreType:
+					break;
+					case Ucm_CoreConfig_SynceNodeCoreType:
+						ntlts->synceRegs.StartAddr = address_start;
+					break;
+					case Ucm_CoreConfig_PhyConfigurationCoreType:
+						ntlts->phyConfRegs.StartAddr = address_start;
+					break;
+
+                	}
+              }
+        }
+
+        else
+        {
+            break;
+        }
+
+    }
+
+    return error_code;
+}
 
 
 
@@ -167,6 +367,11 @@ uint8_t read_reg(const uint32_t addr, uint32_t *data)
     strncat(write_data, "\r", 2);
     strncat(write_data, "\n", 2);
 
+    uint8_t retries = 5;
+//    while(retries != 0) {
+//    	retries--;
+
+
     if (debug)
     {
         printf("%s\n", write_data);
@@ -186,7 +391,13 @@ uint8_t read_reg(const uint32_t addr, uint32_t *data)
         return -1;
     }
 #else // UART
+
+#ifdef PCB519
+    UART3_SendBuff(write_data, strlen(write_data));
+#else
     UART2_SendBuff(write_data, strlen(write_data));
+#endif // PCB519
+
 #endif
 
 #ifdef USE_SOCKET
@@ -201,13 +412,19 @@ uint8_t read_reg(const uint32_t addr, uint32_t *data)
     {
         ntlRspReceived = 0;
         memcpy(read_data, ntlResponseBuff, strlen(ntlResponseBuff));
+        //break; // out of retry loop
     }
     else
     {
-
+#ifdef PCB519
+        UART3_SendBuff("NO RSP\r\n", strlen("NO RSP\r\n"));
+#else
         UART2_SendBuff("NO RSP\r\n", strlen("NO RSP\r\n"));
+#endif // PCB519
     }
 #endif
+
+    //} // retries
 
     if (debug)
     {
@@ -318,7 +535,12 @@ uint8_t write_reg(const uint32_t addr, uint32_t *data)
         return -1;
     }
 #else // UART
+#ifdef PCB519
+    UART3_SendBuff(write_data, strlen(write_data));
+#else
     UART2_SendBuff(write_data, strlen(write_data));
+#endif // PCB519
+
 #endif
 
 #ifdef USE_SOCKET
@@ -336,7 +558,13 @@ uint8_t write_reg(const uint32_t addr, uint32_t *data)
     else
     {
 
-        UART2_SendBuff("NO RSP\r\n", strlen("NO RSP\r\n"));
+
+#ifdef PCB519
+    UART3_SendBuff("NO RSP\r\n", strlen("NO RSP\r\n"));
+#else
+    UART2_SendBuff("NO RSP\r\n", strlen("NO RSP\r\n"));
+#endif // PCB519
+
     }
 #endif
 
@@ -470,5 +698,7 @@ int setup_socket()
 
     return socket_fd;
 }
+
+#endif
 
 #endif
